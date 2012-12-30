@@ -19,7 +19,5 @@ def main():
 		uniquefile.close()
 		print "Unique/Total"
 		print uniqueCount,'/',total
-		os.system("intersectBed -abam %s -b %s -v > %s"%(filename.replace(".bam",".unique.bam"), "genome/hg19/hg19.exons.bed", filename.replace(".bam",".unique.novel.bam")))
-		os.system("intersectBed -abam %s -b %s -u > %s"%(filename.replace(".bam",".unique.bam"), "genome/hg19/hg19.exons.bed", filename.replace(".bam",".unique.exonic.bam")))
 
 main()

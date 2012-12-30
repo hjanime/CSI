@@ -7,6 +7,7 @@ RLENGTH = 0
 USESTRAND = False
 AINSERT = 0
 MINSERT = 0
+NUMMAPPED = 0
 
 def getStartEnd(r):
 	rStart = r.pos
@@ -27,7 +28,8 @@ def getStartEnd(r):
 
 def printHeader(outBed,outCov):
 	outBed.write("#Chrom\tstart\tend\tnumber\tscore\tstrand\n")
-	outCov.write("#number\tcount\tmaxCov\n")
+	outCov.write("#number\tcount\tmaxCov\tRPKM\n")
+
 
 def printRecord(outBed,outCov,count,start,end,strand,chrom,index,maxCov):
 	if count[strand] == -1 or count[strand] < RCUT:
@@ -36,8 +38,9 @@ def printRecord(outBed,outCov,count,start,end,strand,chrom,index,maxCov):
 	if strand == 1:
 		strandStr = '-'
 	index += 1
-	outBed.write("%s\t%s\t%s\t%s\t%s\t%s\n"%(chrom,start[strand],end[strand],index,count[strand],strandStr))
-	outCov.write("%s\t%s\t%s\n"%(index,count[strand],maxCov[strand]))
+	rpkm = count[strand]*1.0*1e9/((end[strand]-start[strand])*NUMMAPPED)
+	outBed.write("%s\t%s\t%s\t%s\t%s\t%s\n"%(chrom,start[strand],end[strand],index,rpkm,strandStr))
+	outCov.write("%s\t%s\t%s\t%s\n"%(index,count[strand],maxCov[strand],rpkm))
 	count[strand] = -1
 	start[strand] = -1
 	end[strand] = -1
@@ -142,6 +145,7 @@ def main():
 	parser.add_argument('-s','--strand',action='store_true',default=False,help='Whether to force strandnees')
 	parser.add_argument('-i','--insert',type=int,default=150,help="The average insert size.")
 	parser.add_argument('-m','--maxInsert',type=int,default=400,help='Maximum insert size.')
+	parser.add_argument('-N','--numMapped',type=long,required=True,help='Number of unique reads mapped.')
 
 	args = parser.parse_args()
 	global RCUT 
@@ -154,6 +158,8 @@ def main():
 	AINSERT = args.insert
 	global MINSERT
 	MINSERT = args.maxInsert
+	global NUMMAPPED
+	NUMMAPPED = args.numMapped
 	outCount = 0
 	for infile in args.infiles:
 		if outCount >= len(args.outfiles):
@@ -164,4 +170,5 @@ def main():
 			outCount += 1
 		getClusters(infile,outBed, outCov)
 
-main()
+if __name__=="__main__":
+	main()
