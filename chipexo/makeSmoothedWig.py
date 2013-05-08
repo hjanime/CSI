@@ -1,5 +1,5 @@
 import os,sys
-import getSummit as gs
+import wig
 import gc
 
 from multiprocessing import Process, Queue, current_process, freeze_support
@@ -9,14 +9,16 @@ offset = 0
 
 def add_chrom_data(taskQ, outQ, processID ):
     for chrom, chromWig in iter( taskQ.get, 'STOP' ):
-        print "Process ", processID," is processing ", chrom
+        print "add chrom data Process ", processID," is processing ", chrom
         lines = []
         lines.append("variableStep chrom=%s\n"%(chrom,))
         startp = chromWig[0,0]
-        expanded = gs.expandWig( chromWig, offset, 1 )
+        expanded = wig.expandWig( chromWig, offset, 1 )
         for i in range( expanded.shape[0] ):
             if expanded[i] > 0.1:
                 lines.append( "%d\t%f\n"%(int(i + startp - offset), expanded[i], ) )
+        #for i in range( chromWig.shape[0] ):
+        #    lines.append('%d\t%f\n'%( chromWig[ i, 0], chromWig[i,1]))
         expanded = None
         outQ.put(lines)
         gc.collect()
@@ -24,18 +26,19 @@ def add_chrom_data(taskQ, outQ, processID ):
 def main():
     for filename in sys.argv[1:]:
         lines = []
-        wig = gs.loadWig( filename )
+        wigdata = wig.loadWig( filename, False )
+        print wigdata
         tokens = filename.split('.')
         tokens[-1] = "smoothed.wig"
 
         chroms = Queue()
         count = 0
         outQ = Queue()
-        for chrom in wig:
+        for chrom in wigdata:
             print "add ", chrom
             count += 1
-            chroms.put( (chrom, wig[chrom][:,0:2]) )
-        wig = None
+            chroms.put( (chrom, wigdata[chrom][:,0:2]) )
+        wigdata = None
 
         NUM_PROCESSES = 3
 

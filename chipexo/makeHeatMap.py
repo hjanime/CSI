@@ -47,8 +47,8 @@ figure = plt.figure()
 plt.imshow(data, aspect='auto', cmap=blue_red)
 #plt.imshow(data[:,:width],aspect='auto', cmap=blue_red)
 plt.colorbar()
-ticks = np.array( [0, width/2, width, width + width/2 , 2*width] )
-labels = [-int(width/2), 0, 'sep', 0, int(width/2)]
+ticks = np.array( [0, width/2-15, width/2, width, width + width/2 , width*1.5 + 15,  2*width] )
+labels = [-int(width/2), -15, 0, 'sep', 0,15, int(width/2)]
 plt.xticks(ticks, labels)
 
 plt.xlabel('Distance from motif (bp)')
@@ -56,5 +56,5 @@ plt.title(sys.argv[1].split('/')[-1].split('.')[0])
 
 tokens = sys.argv[1].split('.')
 tokens[-1] = 'heatMap.png'
-plt.savefig('.'.join(tokens))
-#plt.show()
+#plt.savefig('.'.join(tokens))
+plt.show()

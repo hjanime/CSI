@@ -5,6 +5,7 @@ import numpy as np
 from scipy import stats
 from bisect import *
 import scipy.ndimage.filters as scf
+from wig import *
 
 SMAP = {'+': 'Forward', '-': 'Reverse'}
 
@@ -27,67 +28,8 @@ def loadReadCount( filename ):
     return readCounts
 
 
-def expandWig( chromWig, offset, expandCol, smooth=True ):
-    assert chromWig != None
-    assert chromWig.shape[0] > 0 and chromWig.shape[1] > 0 and expandCol < chromWig.shape[1]
-    assert offset >= 0
-    startp = chromWig[ 0, 0 ]
-    endp = chromWig[ -1, 0 ]
-    expanded = np.zeros( endp - startp + 1 + 2*offset )
-    for i in range( chromWig.shape[0] ):
-        expanded[ chromWig[i, 0] - startp + offset ] = chromWig[ i, expandCol ]
-    if smooth:
-        expanded = scf.gaussian_filter1d( expanded,10 )
-
-    return expanded
 
 
-
-def loadWig(filename):
-    f = open(filename)
-    lines = f.read().strip().split('\n')
-    f.close()
-    wig = {}
-    currChrom = lines[0].strip().split()[1].split('=')[1]
-    temp = []
-    print "loading wig --------------"
-    print currChrom
-    offset = 5
-    for r in lines[1:]:
-        if not r.startswith('var'):
-            tokens = r.strip().split()
-            temp.append([int(tokens[0]), float(tokens[1]), 0])
-        else:
-            temp.sort( key = lambda k:(k[0]))
-            temp = np.array( temp )
-
-            startp = temp[ 0, 0 ]
-
-            forGaussian = expandWig( temp, offset, 1 )
-
-            for i in range( temp.shape[0] ):
-                temp[ i, 2 ] = forGaussian[ temp[ i, 0 ] - startp + offset ]
-
-
-
-            #temp[ :, 2 ] = scf.gaussian_filter1d( temp[ :, 1 ], 3)
-            wig[ currChrom ] = temp
-            currChrom = r.strip().split()[1].split('=')[1]
-            print currChrom
-            temp = []
-    temp.sort( key = lambda k:(k[0]))
-    temp = np.array( temp )
-
-    startp = temp[0, 0]
-
-    forGaussian = expandWig( temp, offset, 1 )
-
-    for i in range( temp.shape[0] ):
-        temp[ i, 2 ] = forGaussian[ temp[ i, 0 ] - startp + offset ]
-
-    wig[ currChrom ] = temp
-    f.close()
-    return wig
 
 def getTagCount( wig, chrom, start, end ):
 
