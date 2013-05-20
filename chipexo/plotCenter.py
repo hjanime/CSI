@@ -44,15 +44,16 @@ def writeAll( values, outName ):
 def plot( fvalues, rvalues, width, out ):
     x = range(-width, width+1)
     for f in fvalues:
-        plt.plot(x, f, '.', color='blue')
+        plt.plot(x, f, '--', color='blue')
     for r in rvalues:
-        plt.plot(x, r, '.', color='red')
-    plt.savefig(out+".png", dpi=600)
+        plt.plot(x, r, '--', color='red')
+    #plt.savefig(out+".png", dpi=600)
+    plt.show()
 
 
 def main(args):
-    fwig = gs.loadWig( args.forwardWig )
-    rwig = gs.loadWig( args.reverseWig )
+    fwig = gs.loadWig( args.forwardWig, smooth=False )
+    rwig = gs.loadWig( args.reverseWig, smooth=False )
     poses = loadPos( args.positionFile, args.chromCol, args.startCol, args.endCol, args.strandCol, args.offset, args.format )
     values = []
     #print "\n"
@@ -102,8 +103,8 @@ def main(args):
     values.sort(key=lambda k:(sum(k),))
 
     writeAll( values, args.out + ".txt" )
-    #values = np.array(values)
-    #plot( values[:,0:2*args.width+1], values[:,2*args.width+1:], args.width, args.out )
+    values = np.array(values)
+    plot( values[:,0:2*args.width+1], values[:,2*args.width+1:], args.width, args.out )
 
 
 

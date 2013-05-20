@@ -1,5 +1,7 @@
 import os,sys
 import numpy as np
+import scipy.stats as scist
+import scipy.misc as scimi
 import gc
 
 from multiprocessing import Process, Queue, current_process, freeze_support
@@ -23,7 +25,46 @@ def density( expanded, sd, nsd ):
                 out[j] += count * 1.0 * np.exp( -0.5 * beta * beta )
     return out
 
-def expandWig( chromWig, offset, expandCol, smooth=True ):
+def density_nb( expanded, r, mean, strand ):
+    '''
+    expanded is the list of values.
+    r, p follows the description in http://en.wikipedia.org/wiki/Negative_binomial_distribution
+    mean = p*r/(1-p)
+    mode = floor( p(r-1)/(1-p) )
+    '''
+    mean = float( mean )
+    r = float(r)
+    p = mean / (mean + r)
+    mode = np.floor( p*(r-1)/(1-p ) )
+    p = 1 - p #conform to the scipy definition
+    nbinom = scist.nbinom( r, p )
+    modep = nbinom.pmf( mode )
+    factor = 1/modep
+    leftwin = mode
+    rightwin = mean * 3
+    if strand == '-':
+        temp = leftwin
+        leftwin = rightwin
+        rightwin = temp
+        
+    out = np.zeros_like( expanded )
+    for i in range( expanded.shape[0] ):
+        count = expanded[i]
+        if count > 0:
+            start = max( 0, i - leftwin )
+            end = min( expanded.shape[0], i + rightwin )
+            for j in range( int(start), int(end) ):
+                k = j - i + mode
+                if strand == '-':
+                    k = mode - j + i
+                out[ j ] += factor*count*nbinom.pmf( k )
+
+    return out
+
+
+
+
+def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+' ):
     assert chromWig != None
     assert chromWig.shape[0] > 0 and chromWig.shape[1] > 0 and expandCol < chromWig.shape[1]
     assert offset >= 0
@@ -34,7 +75,8 @@ def expandWig( chromWig, offset, expandCol, smooth=True ):
         expanded[ chromWig[i, 0] - startp + offset ] = chromWig[ i, expandCol ]
 
     if smooth:
-        expanded = density( expanded, 3, 3)
+        #expanded = density( expanded, 3, 3)
+        expanded = density_nb( expanded, 2, 10, strand)
         #expanded = scf.gaussian_filter1d( expanded,10 )
     gc.collect()
     return expanded
@@ -65,7 +107,7 @@ def readWigFile( filename ):
     f.close()
     return lines, count
 
-def processChrom( taskQ, outQ, processID, offset, smooth = True ):
+def processChrom( taskQ, outQ, processID, offset, smooth = True, strand = '+' ):
     for chrom,chromLines in iter(taskQ.get, "STOP"):
         print 'Process ', processID, ' is processing ', chrom
         temp = [ ]
@@ -90,7 +132,7 @@ def processChrom( taskQ, outQ, processID, offset, smooth = True ):
         gc.collect()
 
 
-def loadWig(filename, smooth = True):
+def loadWig(filename, smooth = True, strand = '+'):
     freeze_support()
     lines, count = readWigFile( filename )
     outQ = Queue()
@@ -104,7 +146,7 @@ def loadWig(filename, smooth = True):
     offset = 5
 
     for i in range( NUM_PROCESSES ):
-        processes.append(Process( target = processChrom, args = ( lines, outQ, processID, offset, smooth  ) ))
+        processes.append(Process( target = processChrom, args = ( lines, outQ, processID, offset, smooth, strand  ) ))
         processes[-1].start()
         processID += 1
 
@@ -122,4 +164,4 @@ def loadWig(filename, smooth = True):
 
 
 if __name__=='__main__':
-    wig = loadWig( sys.argv[1] )
+    wig = loadWig( sys.argv[1], strand = sys.argv[2] )

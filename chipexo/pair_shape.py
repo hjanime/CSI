@@ -1,6 +1,7 @@
 import os,sys
 import numpy as np
 import getSummit as gs
+import wig as WIG
 import argparse
 from operator import itemgetter
 from sortedcollection import SortedCollection
@@ -93,10 +94,13 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
     ends of the peaks are the same. And that when the starts are 
     sorted, the ends are also sorted.
     '''
+    print "fwig: ", fwig
+    print "rwig: ", rwig
     offset = 5
     expandCol = 1
     out1 = open(prefix + "_singletons_shape.bed",'w')
     out2 = open(prefix + "_pairs_shape.gff", "w")
+    print fpeaks.keys()
     for chrom in fpeaks:
         if chrom not in rpeaks:
             continue
@@ -106,9 +110,9 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
         pairF = []  #Store the pairing information, if unpaired, it will be negative.
         pairR = []
         fw = fwig[chrom]
-        expandedFw = gs.expandWig( fw, offset, expandCol )
+        expandedFw = WIG.expandWig( fw, offset, expandCol, smooth=False )
         rw = rwig[chrom]
-        expandedRw = gs.expandWig( rw, offset, expandCol )
+        expandedRw = WIG.expandWig( rw, offset, expandCol, smooth=False )
         rstarts = []
         rends = []
         fprefer = []
@@ -228,8 +232,8 @@ def main():
     args = parser.parse_args()
 
     fpeaks, rpeaks = loadPeaks( args.peak )
-    fwig = gs.loadWig( args.forwardWig )
-    rwig = gs.loadWig( args.reverseWig )
+    fwig = WIG.loadWig( args.forwardWig, smooth=False )
+    rwig = WIG.loadWig( args.reverseWig, smooth=False, strand='-' )
 
     pair( fpeaks, rpeaks, fwig, rwig, args.upstream, args.downstream, args.output)
 
