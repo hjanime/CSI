@@ -119,7 +119,7 @@ def findTruePeak( args, sample, shift, tsize, strand, outdir, mappedCount, rejec
     bed = open("%s_summits.out.bed"%( commonName ), 'w')
     filtered = open("%s_peaks.filtered.out.bed"%( commonName, ), 'w')
     readHeader = False
-    wig = loadWig(os.path.join(args.wigdir, "%s_%s.wig" % ( sample, SMAP[strand], )))
+    wig = loadWig(os.path.join(args.wigdir, "%s_%s.wig" % ( sample, SMAP[strand], )), smooth=False)
     records = []
     coverages = []
     lengths = []
@@ -185,7 +185,7 @@ def findTruePeak( args, sample, shift, tsize, strand, outdir, mappedCount, rejec
                 coverages.append( rpkm )
                 rpms.append( rpm )
                 tagCounts.append( tagCount )
-                if length > 2*shift + 2 and wige - wigs >= 3 and float( tokens[6] ) > min( shift , ( args.pileup * mappedCount ) / 10**6 ): # 2*shift is the pileup frag length, with only one location, it is highly likely to be false
+                if length > 2*shift + 2 and wige - wigs >= 3 and float( tokens[6] ) > min( shift , ( args.pileup * mappedCount * shift ) / 10**7 ): # 2*shift is the pileup frag length, with only one location, it is highly likely to be false
                     records.append(tokens)
                 #outxls.write( '\t'.join( tokens ) )
                 #outxls.write('\n')
@@ -260,8 +260,8 @@ def main():
         mappedCount = readCounts[ s.upper() ]
         path = os.path.join(args.indir, s)
         if args.callpeak or args.callOnly:
-            os.system("macs2 callpeak -B --llocal 50000 --broad --broad-cutoff 0.01 -t %s.unique.+.5.bed -f BED -g hs -n %s_+_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
-            os.system("macs2 callpeak -B --llocal 50000 --broad --broad-cutoff 0.01 -t %s.unique.-.5.bed -f BED -g hs -n %s_-_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
+            os.system("macs2 callpeak -B --llocal 20000 --broad --broad-cutoff 0.01 --half-ext -t %s.unique.+.5.bed -f BED -g hs -n %s_+_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
+            os.system("macs2 callpeak -B --llocal 20000 --broad --broad-cutoff 0.01 --half-ext -t %s.unique.-.5.bed -f BED -g hs -n %s_-_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
         if not args.callOnly:
             tempCovs, tempLengths, tempTagCounts, tempPileUp, tempPileUp5, tempRPM = findTruePeak( args, s, shift, tsize, '+', args.outdir, mappedCount, reject ) 
             labels.append( s + "_+" )

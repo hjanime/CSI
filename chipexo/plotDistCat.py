@@ -4,6 +4,7 @@ import re
 import pylab as pl
 from matplotlib.ticker import MultipleLocator
 import argparse
+import bisect
 
 CATEGORIES = ['splicing','intronic','utr3','utr5','exonic','intergenic','upstream','downstream']
 CATEGORIES_S = ['genic','distal']
@@ -43,8 +44,8 @@ def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200):
         tempy,binEdges = np.histogram(d,bins=range(201),normed=1)
         y.append(tempy)
     
-    print y
-    print binEdges
+    #print y
+    #print binEdges
     binCenters = 0.5*(binEdges[1:]+binEdges[:-1])
     fig = pl.figure()
     for i,tempy  in enumerate(y):
@@ -60,6 +61,18 @@ def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200):
     pl.show()
     #pl.savefig(filename.split('.')[0]+"."+typefig+".png",dpi=600)
     
+
+def plotBox(filename, data, intervals):
+    xlabels = []
+    for i in range( len(intervals) - 1 ):
+        if i != len(intervals ) - 2:
+            xlabels.append( '[%d,%d) %d'%(intervals[i], intervals[i+1],len(data[i])))
+        else:
+            xlabels.append( '[%d,%d] %d'%(intervals[i], intervals[i+1],len(data[i])))
+
+    pl.boxplot(data) 
+    pl.xticks( [i+1 for i in range( len( intervals) - 1 )], xlabels)
+    pl.show()
 
 
 def main( args ):
@@ -87,6 +100,14 @@ def main( args ):
             lines.append(r)
         f.close()
         #lines.sort(key=lambda k:(-float(k.split('\t')[7])))
+        scores = []
+        #remove duplicates from the interval list.
+        args.intervals = list( set( args.intervals ) )
+        if args.scoreCol and len( args.intervals ) > 1:
+            args.intervals.sort()
+            for i in range( len( args.intervals ) - 1 ):
+                scores.append([])
+            print args.intervals
         for r in lines:
             tokens = r.strip().split('\t')
             #read_count = float(tokens[])
@@ -97,7 +118,17 @@ def main( args ):
 
                 dist[ MAP[c] ].append( pair_dist )
                 dist_s[ MAP_S[c] ].append( pair_dist )
-                
+            if args.scoreCol and len( args.intervals ) > 1:
+                pair_score = float( tokens[ args.scoreCol ] )
+                insert_pos_l = bisect.bisect_left( args.intervals, pair_dist )
+                insert_pos_r = bisect.bisect_right( args.intervals, pair_dist )
+                if pair_dist >= args.intervals[0] and pair_dist <= args.intervals[-1]:
+                    if pair_dist == args.intervals[0]:
+                        scores[0].append( pair_score )
+                    else:
+                        scores[ insert_pos_l -1 ].append( pair_score )
+
+
         f.close()
         
         #plotFigure(filename, exp, CATEGORIES, colors, 'Read Count', 'exp')
@@ -107,6 +138,9 @@ def main( args ):
         
 
         plotFigure(filename, dist_s, CATEGORIES_S, colors_s, 'Distance (bp)', 'dist_s', 50)
+
+        if len( scores ) > 0:
+            plotBox(filename, scores, args.intervals)
 
 
         #plotFigure(filename, exp_s, CATEGORIES_S, colors_s, 'Read Count', 'exp_s')
@@ -118,6 +152,7 @@ if __name__=='__main__':
     parser.add_argument("inputs", nargs='+', help="The input files.")
     parser.add_argument('--typeCol', required=True, type=int, help="The index of the column for the annotation type. Index start from 0.")
     parser.add_argument('--scoreCol', type=int, help="The index of the column for the score. Index start from 0.")
+    parser.add_argument('--intervals', type=int, nargs='+', help="The edges of the intervals for the box plots of scores, separated by space. For example: 0 10 20 30 will give interval [0,10), [10,20),[20,30].")
     parser.add_argument('--distCol', required=True, type=int, help="The index of the column for the distance. Index start from 0.")
     parser.add_argument('--header', action='store_true', default=False, help="Whether the first line is header.")
     args = parser.parse_args()

@@ -15,11 +15,15 @@ def add_chrom_data(taskQ, outQ, processID, strand = '+' ):
         startp = chromWig[0,0]
         expanded = wig.expandWig( chromWig, offset, 1, strand = strand )
         for i in range( expanded.shape[0] ):
-            if expanded[i] > 0.1:
+            if expanded[i] > 0.8:
                 lines.append( "%d\t%f\n"%(int(i + startp - offset), expanded[i], ) )
         #for i in range( chromWig.shape[0] ):
         #    lines.append('%d\t%f\n'%( chromWig[ i, 0], chromWig[i,1]))
-        expanded = None
+        expanded.resize(100000, refcheck=False)
+        expanded.resize(0, refcheck=False)
+        chromWig.resize(100000, refcheck=False)
+        chromWig.resize(0, refcheck=False)
+
         outQ.put(lines)
         gc.collect()
 
@@ -41,7 +45,6 @@ def main():
             print "add ", chrom
             count += 1
             chroms.put( (chrom, wigdata[chrom][:,0:2]) )
-        wigdata = None
 
         NUM_PROCESSES = 3
 

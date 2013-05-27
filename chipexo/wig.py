@@ -58,6 +58,8 @@ def density_nb( expanded, r, mean, strand ):
                 if strand == '-':
                     k = mode - j + i
                 out[ j ] += factor*count*nbinom.pmf( k )
+    expanded.resize( 100000, refcheck=False)
+    expanded.resize( 0, refcheck=False)
 
     return out
 
@@ -123,7 +125,8 @@ def processChrom( taskQ, outQ, processID, offset, smooth = True, strand = '+' ):
             forGaussian = expandWig( temp, offset, 1 )
             for i in range( temp.shape[0] ):
                 temp[ i, 2 ] = forGaussian[ temp[i,0] - startp + offset ]
-            del forGaussian
+            forGaussian.resize(100000, refcheck=False)
+            forGaussian.resize(0, refcheck=False)
 
         outQ.put( ( chrom, temp) )
         #temp = None

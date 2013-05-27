@@ -7,6 +7,25 @@ from operator import itemgetter
 from sortedcollection import SortedCollection
 import bisect
 
+def findMaximum( exWig, interval ):
+    maxPoses = []
+    iters = exWig.shape[0] / interval
+    for i in range( iters ):
+        pos = i*interval + np.argmax( exWig[i*interval:min((i+1)*interval, exWig.shape[0])] )
+        if exWig[ pos ] > 5 and exWig[ pos ] > np.max(exWig[ pos-5:pos ]) and exWig[ pos ] > np.max(exWig[ pos+1:pos+6] ):
+            maxPoses.append( pos )
+    if len( maxPoses ) > 0:
+        mergedPoses = [ maxPoses[0], ]
+        prev = maxPoses[0]
+        for i in maxPoses[1:]:
+            if i - prev < interval and (min(exWig[prev], exWig[i]) - np.min( exWig[prev:i] )) / min(exWig[prev], exWig[i]) < 0.2:
+                if exWig[i] > exWig[prev]:
+                    mergedPoses[-1] = i
+            else:
+                mergedPoses.append( i )
+            prev = i
+        return mergedPoses
+    return []
 
 def loadPeaks( filename ):
     f = open( filename )
@@ -57,11 +76,11 @@ def getScore( fp, rp, fstart, rstart ):
     newfp = np.array( [ ( t / fmean) ** 2 for t in fp ], dtype="float32")
     newrp = np.array( [ ( t / rmean) ** 2 for t in rp ], dtype="float32")
     maxScore = 0
+    minScore = 10000000
     shift = 0
     i = 0
     maxRpos = 0
     maxheight = 0
-    average = 0
     #Gradually move forward towards the 3' end
     while fstart + i < rend:
         overlap = 0
@@ -69,25 +88,24 @@ def getScore( fp, rp, fstart, rstart ):
         tempEnd = min( fend + i, rend )
         tempRpos = 0
         tempHeight = 0
-        totalRaw = 0
         for j in range( tempStart, tempEnd + 1 ):
-            temp =  newfp[ j - ( fstart + i ) ] * newrp[ j - rstart ]  
-            tempRawHeight = fp[ j - ( fstart + i ) ] + rp[ j - rstart ]
-            if tempRawHeight >  tempHeight:
-                tempHeight = tempRawHeight
+            if newfp[ j - (fstart+i) ] < 1 and newrp[ j - rstart ] < 1:
+                continue
+            temp =  (newfp[ j - ( fstart + i ) ] - newrp[ j - rstart ])**2
+            if fp[j - (fstart + i)] + newrp[j - rstart] >  tempHeight:
+                tempHeight = fp[j - (fstart + i)] + newrp[j - rstart]
                 tempRpos = j
             overlap += temp
-            totalRaw += fp[ j - ( fstart + i ) ] + rp[ j - rstart ]
-        tempScore =  overlap #/ ( abs (sum( rp[ tempStart - rstart : tempEnd - rstart + 1] ) - sum( fp[ tempStart - (fstart+i) : tempEnd - (fstart+i) +1] )) + 10 )
+        tempScore =  overlap * np.abs( fmean - rmean ) / ( tempEnd - tempStart + 10 )   #/ ( abs (sum( rp[ tempStart - rstart : tempEnd - rstart + 1] ) - sum( fp[ tempStart - (fstart+i) : tempEnd - (fstart+i) +1] )) + 10 )
+        tempScore = 1 / tempScore
         if tempScore > maxScore:
             maxScore = tempScore
             shift = i
             maxheight = tempHeight
             maxRpos = tempRpos
-            average = totalRaw / ( tempEnd - tempStart + 1 )
         i += 1
 
-    return maxScore, shift, maxRpos, average, maxheight
+    return maxScore, shift, maxRpos, maxheight
 
 
 
@@ -103,8 +121,8 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
     print "rwig: ", rwig
     offset = 5
     expandCol = 1
-    out1 = open(prefix + "_singletons_shape.bed",'w')
-    out2 = open(prefix + "_pairs_shape.gff", "w")
+    out1 = open(prefix + "_singletons_dev.bed",'w')
+    out2 = open(prefix + "_pairs_dev.gff", "w")
     print fpeaks.keys()
     for chrom in fpeaks:
         if chrom not in rpeaks:
@@ -147,7 +165,6 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
             bestDist = 0
             bestIdx = 0
             bestRpos = 0
-            bestAve = 0
             bestHeight = 0
             for idx in range( si, ei ):
                 currrp = rp[ idx ]
@@ -156,27 +173,26 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 currRw = expandedRw[ max( 0, rstart - rw[0, 0] ) + offset : max( 0, rend - rw[0,0] ) + offset + 1 ]
                 rtagCoungs,_,_,_ = gs.getTagCount( rwig, chrom, currrp[1], currrp[2] )
 
-                tempScore, tempDist, tempRpos, tempAve, tempHeight = getScore( currFw, currRw, start, rstart )
+                tempScore, tempDist, tempRpos, tempHeight = getScore( currFw, currRw, start, rstart )
 
-                fprefer[ i ].insert( (idx, tempScore, tempDist, tempRpos, tempAve, tempHeight) )
-                rprefer[ idx ].insert( (i, tempScore, tempDist, tempRpos, tempAve, tempHeight) )
+                fprefer[ i ].insert( (idx, tempScore, tempDist, tempRpos, tempHeight) )
+                rprefer[ idx ].insert( (i, tempScore, tempDist, tempRpos, tempHeight) )
                 if tempScore > maxScore:
                     maxScore = tempScore
                     bestDist = tempDist
                     bestIdx = idx
                     bestRpos = tempRpos
-                    bestAve = tempAve
                     bestHeight = tempHeight
             if maxScore > pairR[ bestIdx ][1]:
-                pairF[i] = ( bestIdx, maxScore, bestDist , bestRpos, bestAve, bestHeight)
+                pairF[i] = ( bestIdx, maxScore, bestDist , bestRpos, bestHeight)
                 if pairR[ bestIdx ][0] >= 0:
                     pairF[ pairR[ bestIdx ][ 0 ] ] = (-1, 0, 0)
                     unpairedF.append( pairR[ bestIdx ][0] )
-                pairR[bestIdx] = ( i, maxScore, bestDist, bestRpos, bestAve, bestHeight )
+                pairR[bestIdx] = ( i, maxScore, bestDist, bestRpos, bestHeight )
             else:
                 unpairedF.append( i )
             try:
-                fprefer[ i ].remove( ( bestIdx, maxScore, bestDist, bestRpos, bestAve, bestHeight ) )
+                fprefer[ i ].remove( ( bestIdx, maxScore, bestDist, bestRpos, bestHeight ) )
             except ValueError:
                 #print "Value error: ", bestIdx, ' ',maxScore, ' ',bestDist,' ', si,' ', ei
                 pass
@@ -190,9 +206,9 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                         if pairR[ ridx ][0] > 0:
                             pairF[ pairR[ ridx ][0] ] = (-1, 0, 0)
                             unpairedF.append( pairR[ ridx ][0] )
-                        pairR[ ridx ] = ( u, fprefer[u][-1][1], fprefer[u][-1][2], fprefer[u][-1][3], fprefer[u][-1][4], fprefer[u][-1][5] )
-                        pairF[ u ] = ( ridx, fprefer[u][-1][1], fprefer[u][-1][2], fprefer[u][-1][3], fprefer[u][-1][4], fprefer[u][-1][5] )
-                    fprefer[u].remove( (ridx, fprefer[u][-1][1], fprefer[u][-1][2], fprefer[u][-1][3], fprefer[u][-1][4], fprefer[u][-1][5] ) )
+                        pairR[ ridx ] = ( u, fprefer[u][-1][1], fprefer[u][-1][2], fprefer[u][-1][3], fprefer[u][-1][4] )
+                        pairF[ u ] = ( ridx, fprefer[u][-1][1], fprefer[u][-1][2], fprefer[u][-1][3], fprefer[u][-1][4] )
+                    fprefer[u].remove( (ridx, fprefer[u][-1][1], fprefer[u][-1][2], fprefer[u][-1][3], fprefer[u][-1][4] ) )
                 else:
                     unpairedF.remove( u )
 
@@ -206,7 +222,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 #pairs.append( rp[f[0]] )
                 pairStart = (2*f[3] - f[2])/2
                 pairEnd = pairStart + 1
-                pairs.append( [fp[i][0],f[5],'.',pairStart-10, pairEnd+10,f[4],'.','.','cw_distance='+str(f[2]) ] )
+                pairs.append( [fp[i][0],'.','.',pairStart-10, pairEnd+10,f[4],'.','.','cw_distance='+str(f[2]) ] )
 
         for i,f in enumerate(pairR):
             rp[i][1] -= 1
