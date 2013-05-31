@@ -24,7 +24,7 @@ def normColor(colors):
     return result
 
 def getTitle(filename):
-    tokens = filename.split('/')[-1].split('_')
+    tokens = os.path.basename(filename).split('_')
     if len(tokens) < 12:
         return filename.split('/')[-1].split('.')[0]
     used = tokens[1:4]
@@ -33,8 +33,14 @@ def getTitle(filename):
     used.append(tokens[11])
     return '_'.join(used)
 
+def saveOrPrint( filename, typefig, saveFig ):
+    if saveFig:
+        pl.savefig(os.path.join(saveFig,filename.split('.')[0]+"."+typefig+".png"),dpi=600)
+    else:
+        pl.show()
 
-def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200):
+
+def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200,saveFig=None):
     #out = pl.hist(data,nbins,normed=1,range=(0,100),histtype='bar',label=cates,color=colors,edgecolor='none')
     y = []
     binEdges = []
@@ -58,21 +64,31 @@ def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200):
     ax.xaxis.set_minor_locator(MultipleLocator(1.0))
     pl.legend()
     pl.title(getTitle(filename) + " " + xlabel, fontsize=10)
-    pl.show()
-    #pl.savefig(filename.split('.')[0]+"."+typefig+".png",dpi=600)
-    
+    saveOrPrint( filename, typefig, saveFig )
 
-def plotBox(filename, data, intervals):
+def plotBox(filename, data, intervals, scoretype, saveFig = None):
+    pl.figure()
     xlabels = []
+    total = 0
+    totalCount = 0
+    if scoretype:
+        socreType = 'box.' + scoretype
+    pl.title(filename.split('.')[0] + ' ' + scoretype + ' plot')
     for i in range( len(intervals) - 1 ):
         if i != len(intervals ) - 2:
             xlabels.append( '[%d,%d) %d'%(intervals[i], intervals[i+1],len(data[i])))
         else:
             xlabels.append( '[%d,%d] %d'%(intervals[i], intervals[i+1],len(data[i])))
 
+    for d in data:
+        total += sum(d)
+        totalCount += len(d)
+
+
     pl.boxplot(data) 
     pl.xticks( [i+1 for i in range( len( intervals) - 1 )], xlabels)
-    pl.show()
+    pl.ylim([0,total/totalCount + 30])
+    saveOrPrint( filename, scoretype, saveFig) 
 
 
 def main( args ):
@@ -134,13 +150,13 @@ def main( args ):
         #plotFigure(filename, exp, CATEGORIES, colors, 'Read Count', 'exp')
         
         
-        plotFigure(filename, dist[1:], CATEGORIES[1:], colors, 'Distance (bp)', 'dist', 50)
+        plotFigure(os.path.basename(filename), dist[1:], CATEGORIES[1:], colors, 'Distance (bp)', 'dist', 50, saveFig=args.savefig)
         
 
-        plotFigure(filename, dist_s, CATEGORIES_S, colors_s, 'Distance (bp)', 'dist_s', 50)
+        plotFigure(os.path.basename(filename), dist_s, CATEGORIES_S, colors_s, 'Distance (bp)', 'dist_s', 50, saveFig=args.savefig)
 
         if len( scores ) > 0:
-            plotBox(filename, scores, args.intervals)
+            plotBox(os.path.basename(filename), scores, args.intervals, args.scoretype, saveFig=args.savefig)
 
 
         #plotFigure(filename, exp_s, CATEGORIES_S, colors_s, 'Read Count', 'exp_s')
@@ -155,6 +171,8 @@ if __name__=='__main__':
     parser.add_argument('--intervals', type=int, nargs='+', help="The edges of the intervals for the box plots of scores, separated by space. For example: 0 10 20 30 will give interval [0,10), [10,20),[20,30].")
     parser.add_argument('--distCol', required=True, type=int, help="The index of the column for the distance. Index start from 0.")
     parser.add_argument('--header', action='store_true', default=False, help="Whether the first line is header.")
+    parser.add_argument('--savefig', help="The directory for saving the figs. If not set, the fig will be shown and not saved.")
+    parser.add_argument('--scoretype', help="An annotation to indicate the type of score.")
     args = parser.parse_args()
     main( args)
 

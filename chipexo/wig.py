@@ -23,6 +23,8 @@ def density( expanded, sd, nsd ):
             for j in range(int( start ), int( end ) ):
                 beta = ( j - i ) * 1.0 / sd
                 out[j] += count * 1.0 * np.exp( -0.5 * beta * beta )
+    expanded.resize(100000, refcheck=False)
+    expanded.resize(0, refcheck=False)
     return out
 
 def density_nb( expanded, r, mean, strand ):
@@ -77,8 +79,8 @@ def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+' ):
         expanded[ chromWig[i, 0] - startp + offset ] = chromWig[ i, expandCol ]
 
     if smooth:
-        #expanded = density( expanded, 3, 3)
-        expanded = density_nb( expanded, 2, 10, strand)
+        expanded = density( expanded, 3, 3)
+        #expanded = density_nb( expanded, 2, 10, strand)
         #expanded = scf.gaussian_filter1d( expanded,10 )
     gc.collect()
     return expanded
