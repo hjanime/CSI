@@ -48,7 +48,7 @@ def main(args):
             count += 1
             chroms.put( (chrom, wigdata[chrom][:,0:2]) )
 
-        NUM_PROCESSES = 3
+        NUM_PROCESSES = args.process
 
         
         processID = 1
@@ -85,6 +85,7 @@ if __name__=='__main__':
     parser.add_argument('--nbw', type=int, default=3, help='the number of bandwidths, only for Gaussian smoothing')
     parser.add_argument('--r', type=int, default=2, help='the r in http://en.wikipedia.org/wiki/Negative_binomial_distribution')
     parser.add_argument('--mean', type=float, default=10, help='the mean in http://en.wikipedia.org/wiki/Negative_binomial_distribution')
+    parser.add_argument('-p', '--process', type=int, default=3,help='The number of processes to use')
     args = parser.parse_args()
     freeze_support()
     main(args)
