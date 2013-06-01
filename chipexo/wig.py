@@ -68,10 +68,17 @@ def density_nb( expanded, r, mean, strand ):
 
 
 
-def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+' ):
+def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+', method='g', kargs=None ):
     assert chromWig != None
     assert chromWig.shape[0] > 0 and chromWig.shape[1] > 0 and expandCol < chromWig.shape[1]
     assert offset >= 0
+    assert method=='g' or method =='nb'
+    assert kargs == None or len( kargs ) > 1
+    if not kargs:
+        if method == 'g':
+            kargs = (3,3) # bandwidth, number of bandwidth
+        elif method == 'nb':
+            kargs = (2, 10) #r, mean
     startp = chromWig[ 0, 0 ]
     endp = chromWig[ -1, 0 ]
     expanded = np.zeros( endp - startp + 1 + 2*offset )
@@ -79,8 +86,10 @@ def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+' ):
         expanded[ chromWig[i, 0] - startp + offset ] = chromWig[ i, expandCol ]
 
     if smooth:
-        expanded = density( expanded, 3, 3)
-        #expanded = density_nb( expanded, 2, 10, strand)
+        if method == 'g':
+            expanded = density( expanded, kargs[0], kargs[1])
+        else:
+            expanded = density_nb( expanded, kargs[0], kargs[1], strand)
         #expanded = scf.gaussian_filter1d( expanded,10 )
     gc.collect()
     return expanded
