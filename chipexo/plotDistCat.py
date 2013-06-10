@@ -90,6 +90,17 @@ def plotBox(filename, data, intervals, scoretype, saveFig = None):
     pl.ylim([0,total/totalCount + 30])
     saveOrPrint( filename, scoretype, saveFig) 
 
+def getIntervalIdx( intervals, v ):
+    idx = None
+    insert_pos_l = bisect.bisect_left( intervals, v)
+    insert_pos_r = bisect.bisect_right( intervals, v )
+    if v >= intervals[0] and v <= intervals[-1]:
+        if v == intervals[0]:
+            idx = 0
+        else:
+            idx = insert_pos_l -1
+
+    return idx
 
 def main( args ):
     colors = normColor(COLORS)
@@ -136,14 +147,9 @@ def main( args ):
                 dist_s[ MAP_S[c] ].append( pair_dist )
             if args.scoreCol and len( args.intervals ) > 1:
                 pair_score = float( tokens[ args.scoreCol ] )
-                insert_pos_l = bisect.bisect_left( args.intervals, pair_dist )
-                insert_pos_r = bisect.bisect_right( args.intervals, pair_dist )
-                if pair_dist >= args.intervals[0] and pair_dist <= args.intervals[-1]:
-                    if pair_dist == args.intervals[0]:
-                        scores[0].append( pair_score )
-                    else:
-                        scores[ insert_pos_l -1 ].append( pair_score )
-
+                interIdx = getIntervalIdx( args.intervals, pair_dist )
+                if interIdx:
+                    scores[ interIdx ].append( pair_score )
 
         f.close()
         
