@@ -86,7 +86,7 @@ def plotBox(filename, data, intervals, scoretype, saveFig = None):
 
 
     pl.boxplot(data) 
-    pl.xticks( [i+1 for i in range( len( intervals) - 1 )], xlabels)
+    pl.xticks( [i+1 for i in range( len( intervals) - 1 )], xlabels, rotation=20)
     pl.ylim([0,total/totalCount + 30])
     saveOrPrint( filename, scoretype, saveFig) 
 
@@ -148,7 +148,7 @@ def main( args ):
             if args.scoreCol and len( args.intervals ) > 1:
                 pair_score = float( tokens[ args.scoreCol ] )
                 interIdx = getIntervalIdx( args.intervals, pair_dist )
-                if interIdx:
+                if interIdx != None:
                     scores[ interIdx ].append( pair_score )
 
         f.close()

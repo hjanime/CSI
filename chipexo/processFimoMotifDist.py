@@ -1,10 +1,14 @@
 import os,sys
+from plotDistCat import getIntervalIdx
 
 def parseArgs():
     import argparse
     parser = argparse.ArgumentParser(description="This script takes a fimo output with the motifs in the last column and distances in the first column to generate a table of number of motifs in different distance categories.")
     parser.add_argument('input', help="The fimo output file")
     parser.add_argument('-I', '--intervals', type=int, nargs='+', help="The edges of distance intervals to split the data into. [) style of edges.")
+    parser.add_argument('-o', '--outPrefix', help="The output prefix.")
+    parser.add_argument('-f', '--fasta', help="The fasta file that the fimo output is generated from.")
+    parser.add_argument('-t', '--translate', help="Translate meme identifier to factor name")
 
     return parser.parse_args()
 
@@ -31,27 +35,81 @@ def getRecords( infile ):
     records.sort(key=lambda k:(k[-1],k[2],k[0]))
     return records, motifs
 
-def printResult( result, motifs, intervals ):
-    sys.stdout.write('motifs')
-    for i in range(len(intervals) - 1 ):
-        if i == len(intervals) - 2:
-            sys.stdout.write('\t[%d,%d]'%(intervals[i], intervals[i+1],))
-        else:
-            sys.stdout.write('\t[%d,%d)'%(intervals[i], intervals[i+1],))
-    sys.stdout.write('\n')
+def loadTranslate( filename ):
+    if not filename:
+        return None
+    f = open( filename )
+    translate = {}
+    for r in f:
+        if r.startswith('#'):
+            continue
+        tokens = r.strip().split()
+        translate[ tokens[0].upper() ] = tokens[1].upper()
 
-    for i in range( len( motifs ) ):
-        sys.stdout.write(motifs[i])
-        for j in range( len( intervals )-1 ):
-            temp = []
-            for k in result[i][j]:
-                temp.append('%d:%d'%(k,result[i][j][k],))
-            temp.sort(key=lambda k:(int(k.split(':')[0])))
-            if len( temp ) == 0:
-                temp = ['0',]
-            sys.stdout.write('\t%s'%', '.join(temp))
-        sys.stdout.write('\n')
+    f.close()
+    return translate
 
+def printResult( result, motifs, intervals, outPrefix = None, fastaCount = None, translate=None):
+    out = sys.stdout
+    outS = None
+    if outPrefix:
+        out = open( outPrefix + '.detail.tsv','w')
+        outS = open( outPrefix + '.tsv','w')
+    
+    def writeToFile( out, useSum = False ):
+        out.write('motifs')
+        if translate:
+            out.write('\tFactor')
+        for i in range(len(intervals) - 1 ):
+            if i == len(intervals) - 2:
+                out.write('\t[%d,%d]'%(intervals[i], intervals[i+1],))
+            else:
+                out.write('\t[%d,%d)'%(intervals[i], intervals[i+1],))
+        out.write('\n')
+
+        for i in range( len( motifs ) ):
+            out.write(motifs[i])
+            if translate and motifs[i] in translate:
+                out.write('\t' + translate[motifs[i]])
+            for j in range( len( intervals )-1 ):
+                temp = []
+                tempTotal = 0
+                for k in result[i][j]:
+                    temp.append('%d:%d'%(k,result[i][j][k],))
+                    tempTotal += result[i][j][k]
+                temp.sort(key=lambda k:(int(k.split(':')[0])))
+                if len( temp ) == 0:
+                    temp = ['0',]
+                if not useSum:
+                    out.write('\t%s'%', '.join(temp))
+                else:
+                    out.write('\t%d'%tempTotal)
+            out.write('\n')
+        if fastaCount:
+            out.write('Number_of_seqs\t')
+            for v in fastaCount:
+                out.write('\t%d'%v)
+            out.write('\n')
+    
+    writeToFile( out )
+    if outPrefix:
+        writeToFile( outS, True)
+        out.close()
+        outS.close()
+
+def getFastaCount( fasta, intervals ):
+    f = open( fasta )
+    counts = []
+    for i in range( len(intervals) -1 ):
+        counts.append(0)
+
+    for r in f:
+        if r.strip()[0] == '>':
+            v = int(r.split('=')[-1])
+        idx = getIntervalIdx( intervals, v)
+        if idx != None:
+            counts[ idx ] += 1
+    return counts
 
 def main( args ):
     records, motifs = getRecords( args.input )
@@ -60,8 +118,6 @@ def main( args ):
     if len( args.intervals ) < 2:
         print "Intervals not defined."
         return
-    import bisect
-    from plotDistCat import getIntervalIdx
     result = []
     for i in range( len(motifs) ):
         temp = []
@@ -84,15 +140,17 @@ def main( args ):
             if r[0] == currSeqName:
                 currSeqMotifCount += 1
             else:
-                if intervalIndex  and currSeqMotifCount in result[motifIndex][intervalIndex]:
+                if intervalIndex != None  and currSeqMotifCount in result[motifIndex][intervalIndex]:
                     result[motifIndex][intervalIndex][ currSeqMotifCount ] += 1
-                elif intervalIndex:
+                elif intervalIndex != None:
                     result[motifIndex][intervalIndex][ currSeqMotifCount ] = 1
                 currSeqMotifCount = 1
                 intervalIndex = getIntervalIdx( args.intervals, r[2] )
                 currSeqName = r[0]
 
-    printResult( result, motifs, args.intervals )
+    fastaCount = getFastaCount( args.fasta, args.intervals )
+    translate = loadTranslate( args.translate )
+    printResult( result, motifs, args.intervals, args.outPrefix, fastaCount, translate)
 
 
 if __name__=='__main__':
