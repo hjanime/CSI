@@ -63,8 +63,8 @@ def main(args):
         tokens = filename.split('.')
         tokens[-1] = args.method +'_'+str(kargs[0]) + '_' + str(kargs[1]) +  "_smoothed.wig"
         out = open( '.'.join(tokens), 'w' )
+        out.write('track type=wiggle_0 name=%s_%d_%f\n'%( args.method, kargs[0], kargs[1], ))
         for i in range( count ):
-            out.write('track type=wiggle_0 name=%s_%d_%f\n'%( args.method, kargs[0], kargs[1], ))
             out.write( ''.join(outQ.get()) )
 
 

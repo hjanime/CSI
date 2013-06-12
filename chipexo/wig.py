@@ -112,6 +112,8 @@ def readWigFile( filename ):
                 count += 1
             temp = []
             currChrom = r.strip().split('=')[1]
+        elif r.startswith('track'):
+            continue
         else:
             temp.append( r.strip() )
     if len(temp) > 0:
