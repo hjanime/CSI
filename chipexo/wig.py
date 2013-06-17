@@ -74,7 +74,7 @@ def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+', method='g
     assert chromWig != None
     assert chromWig.shape[0] > 0 and chromWig.shape[1] > 0 and expandCol < chromWig.shape[1]
     assert offset >= 0
-    assert method=='g' or method =='nb'
+    assert method=='g' or method =='nb' or method=='go'
     assert kargs == None or len( kargs ) > 1
     if not kargs:
         if method == 'g':
