@@ -56,7 +56,7 @@ def main(args):
             Process( target=add_chrom_data, args=( chroms, outQ, processID,  args, strand) ).start()
             processID += 1
 
-        if args.method == 'g':
+        if args.method != 'nb':
             kargs = (args.bw, args.nbw)
         else:
             kargs = (args.r, args.mean)
