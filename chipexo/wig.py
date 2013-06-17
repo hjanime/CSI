@@ -7,7 +7,7 @@ import gc
 from multiprocessing import Process, Queue, current_process, freeze_support
 
 
-def density( expanded, sd, nsd ):
+def density( expanded, sd, nsd, oneOnly=False ):
     '''
     expanded: the 1-dimensional array with all the values of a chromosome
     sd: standard deviation
@@ -16,6 +16,8 @@ def density( expanded, sd, nsd ):
     out = np.zeros_like( expanded, dtype=np.float64 )
     for i in range( expanded.shape[0] ):
         count = expanded[i]
+        if oneOnly and count > 1:
+            count = 1
         if count > 0:
             window = sd * nsd * count
             start = max( 0, i - window )
@@ -88,6 +90,8 @@ def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+', method='g
     if smooth:
         if method == 'g':
             expanded = density( expanded, kargs[0], kargs[1])
+        elif method == 'go':
+            expanded = density( expanded, kargs[0], kargs[1], True)
         else:
             expanded = density_nb( expanded, kargs[0], kargs[1], strand)
         #expanded = scf.gaussian_filter1d( expanded,10 )

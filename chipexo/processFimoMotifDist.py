@@ -104,8 +104,9 @@ def getFastaCount( fasta, intervals ):
         counts.append(0)
 
     for r in f:
-        if r.strip()[0] == '>':
-            v = int(r.split('=')[-1])
+        if r.strip()[0] != '>':
+            continue
+        v = int(r.split('=')[-1])
         idx = getIntervalIdx( intervals, v)
         if idx != None:
             counts[ idx ] += 1

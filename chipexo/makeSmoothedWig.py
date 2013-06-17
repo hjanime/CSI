@@ -80,7 +80,7 @@ if __name__=='__main__':
     import argparse
     parser = argparse.ArgumentParser("Create smoothed wig files")
     parser.add_argument("inputs", metavar="I", nargs='+', help='input wig files')
-    parser.add_argument('-m','--method', default='g', choices=['nb', 'g'], help='kernel for smoothing. nb: negative binomial, g: gaussian. Default is g')
+    parser.add_argument('-m','--method', default='g', choices=['nb', 'g', 'go'], help='kernel for smoothing. nb: negative binomial, g: gaussian, go: gaussian, keep 1 read per position. Default is g')
     parser.add_argument('--bw', type=int, default=3, help='the bandwidth for smoothing, only for Gaussian smoothing')
     parser.add_argument('--nbw', type=int, default=3, help='the number of bandwidths, only for Gaussian smoothing')
     parser.add_argument('--r', type=int, default=2, help='the r in http://en.wikipedia.org/wiki/Negative_binomial_distribution')

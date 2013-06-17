@@ -260,8 +260,8 @@ def main():
         mappedCount = readCounts[ s.upper() ]
         path = os.path.join(args.indir, s)
         if args.callpeak or args.callOnly:
-            os.system("macs2 callpeak -B --llocal 20000 --broad --broad-cutoff 0.01 --half-ext -t %s.unique.+.5.bed -f BED -g hs -n %s_+_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
-            os.system("macs2 callpeak -B --llocal 20000 --broad --broad-cutoff 0.01 --half-ext -t %s.unique.-.5.bed -f BED -g hs -n %s_-_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
+            os.system("macs2 callpeak -B --llocal 20000 --broad --broad-cutoff 0.01 --half-ext -t %s.unique.+.bam -f BAM -g hs -n %s_+_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
+            os.system("macs2 callpeak -B --llocal 20000 --broad --broad-cutoff 0.01 --half-ext -t %s.unique.-.bam -f BAM -g hs -n %s_-_sh%d_t%d --bw 60 --verbose 2 -q 0.001 --nomodel --shiftsize %d --tsize %d --keep-dup %s"%(path, os.path.join( args.outdir, s ), shift, tsize, shift, tsize, args.mode))
         if not args.callOnly:
             tempCovs, tempLengths, tempTagCounts, tempPileUp, tempPileUp5, tempRPM = findTruePeak( args, s, shift, tsize, '+', args.outdir, mappedCount, reject ) 
             labels.append( s + "_+" )

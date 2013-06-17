@@ -61,7 +61,7 @@ def main( args ):
                 print 'Header in wrong format: ' + r
                 continue
             elif header not in ann:
-                print 'Header not found in annotation: ' + r
+                print 'Header not found in annotation: ' + header
                 continue
             header = header + '_' + ann[ header ]
             out.write('>%s\n' % header )
