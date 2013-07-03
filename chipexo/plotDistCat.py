@@ -33,12 +33,22 @@ def getTitle(filename):
     used.append(tokens[11])
     return '_'.join(used)
 
-def saveOrPrint( filename, typefig, saveFig ):
+def saveOrPrint(fig, filename, typefig, saveFig ):
     if saveFig:
-        pl.savefig(os.path.join(saveFig,filename.split('.')[0]+"."+typefig+".png"),dpi=600)
+        fig.savefig(os.path.join(saveFig,filename.split('.')[0]+"."+typefig+".png"),dpi=600)
     else:
-        pl.show()
+        fig.show()
+    fig.clf()
 
+
+def getHistBinCenters( data, nbins, dataRange = None, normed=False):
+    if dataRange != None:
+        tempy, binEdges = np.histogram( data, bins=nbins, range=dataRange, normed=normed )
+    else:
+        tempy, binEdges = np.histogram( data, bins=nbins, normed=normed )
+    binCenters = 0.5*(binEdges[1:]+binEdges[:-1])
+
+    return tempy, binCenters
 
 def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200,saveFig=None):
     #out = pl.hist(data,nbins,normed=1,range=(0,100),histtype='bar',label=cates,color=colors,edgecolor='none')
@@ -57,23 +67,24 @@ def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200,saveFig=None)
     for i,tempy  in enumerate(y):
         pl.plot(binCenters,tempy,'-', color=colors[i],label=cates[i]+" (%d)"%(total[i],))
     ax=fig.add_subplot(111)
-    pl.grid(b=True,which='major', color='g', linestyle='--')
-    pl.ylabel('Frequency',fontsize=16)
-    pl.xlabel(xlabel,fontsize=16)
+    ax.grid(b=True,which='major', color='g', linestyle='--')
+    ax.set_ylabel('Frequency',fontsize=16)
+    ax.set_xlabel(xlabel,fontsize=16)
     ax.xaxis.set_major_locator(MultipleLocator(20.0))
     ax.xaxis.set_minor_locator(MultipleLocator(1.0))
-    pl.legend()
-    pl.title(getTitle(filename) + " " + xlabel, fontsize=10)
-    saveOrPrint( filename, typefig, saveFig )
+    ax.legend()
+    ax.set_title(getTitle(filename) + " " + xlabel, fontsize=10)
+    saveOrPrint(fig, filename, typefig, saveFig )
 
 def plotBox(filename, data, intervals, scoretype, saveFig = None):
-    pl.figure()
+    fig = pl.figure()
+    fig_sub = fig.add_subplot(111)
     xlabels = []
     total = 0
     totalCount = 0
     if scoretype:
         socreType = 'box.' + scoretype
-    pl.title(filename.split('.')[0] + ' ' + scoretype + ' plot')
+    fig_sub.set_title(filename.split('.')[0] + ' ' + scoretype + ' plot')
     for i in range( len(intervals) - 1 ):
         if i != len(intervals ) - 2:
             xlabels.append( '[%d,%d) %d'%(intervals[i], intervals[i+1],len(data[i])))
@@ -85,21 +96,24 @@ def plotBox(filename, data, intervals, scoretype, saveFig = None):
         totalCount += len(d)
 
 
-    pl.boxplot(data) 
+    fig_sub.boxplot(data) 
     pl.xticks( [i+1 for i in range( len( intervals) - 1 )], xlabels, rotation=20)
-    pl.ylim([0,total/totalCount + 30])
-    saveOrPrint( filename, scoretype, saveFig) 
+    fig_sub.set_ylim([0,total/totalCount + 30])
+    saveOrPrint(fig, filename, scoretype, saveFig) 
+    #fig.close()
+    pl.close()
 
 def getIntervalIdx( intervals, v ):
     idx = None
     insert_pos_l = bisect.bisect_left( intervals, v)
     insert_pos_r = bisect.bisect_right( intervals, v )
-    if v >= intervals[0] and v <= intervals[-1]:
+    if v >= intervals[0] and v < intervals[-1]:
         if v == intervals[0]:
             idx = 0
         else:
-            idx = insert_pos_l -1
-
+            idx = insert_pos_r -1
+    elif v == intervals[-1]:
+        idx = insert_pos_l - 1
     return idx
 
 def main( args ):
