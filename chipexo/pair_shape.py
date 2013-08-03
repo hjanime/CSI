@@ -103,8 +103,8 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
     print "rwig: ", rwig
     offset = 5
     expandCol = 1
-    out1 = open(prefix + "_singletons_shape.bed",'w')
-    out2 = open(prefix + "_pairs_shape.gff", "w")
+    out1 = open(prefix + "_singletons_shape_true.bed",'w')
+    out2 = open(prefix + "_pairs_shape_true.gff", "w")
     print fpeaks.keys()
     for chrom in fpeaks:
         if chrom not in rpeaks:
@@ -204,9 +204,11 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 rp[f[0]][1] -= 1
                 #pairs.append( fp[i] )
                 #pairs.append( rp[f[0]] )
-                pairStart = (2*f[3] - f[2])/2
-                pairEnd = pairStart + 1
-                pairs.append( [fp[i][0],f[5],'.',pairStart-10, pairEnd+10,f[4],'.','.','cw_distance='+str(f[2]) ] )
+                #pairStart = (2*f[3] - f[2])/2
+                #pairEnd = pairStart + 1
+                pairStart = f[3] - f[2] + 1
+                pairEnd = f[3] 
+                pairs.append( [fp[i][0],f[5],'.',pairStart, pairEnd,f[4],'.','.','cw_distance='+str(f[2]) ] )
 
         for i,f in enumerate(pairR):
             rp[i][1] -= 1
