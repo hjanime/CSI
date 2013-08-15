@@ -1,0 +1,7 @@
+#method_name	method_type	method_version
+MACS	Peak_calling	1.4.2
+MACS	Peak_calling	2.0.10.20130520
+GEM	Peak_calling	1.3
+GEM	Peak_calling	2.2
+BWA	Mapping	0.6.2-r126
+BWA	Mapping	0.5.9-r16

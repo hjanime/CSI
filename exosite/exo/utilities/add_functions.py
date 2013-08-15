@@ -1,12 +1,13 @@
 '''
-Created on Aug 3, 2013
+Created on Aug 15, 2013
 
 @author: caofan
 '''
-from exo.models import Genome
-from django.db import IntegrityError
-from django.db import transaction
+
+from exo.models import *
+from django.db import transaction, IntegrityError
 from fileHandler import FileHandler
+
 
 def add_genome_to_db():
     f = FileHandler("../../data/genomes.txt")
@@ -25,7 +26,3 @@ def add_genome_to_db():
             print "error"
             transaction.savepoint_rollback(sid)
     f.close()
-    
-if __name__ == "__main__":
-    add_genome_to_db()
-    

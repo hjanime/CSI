@@ -1,0 +1,6 @@
+# These data files should be tab delimited.
+#assembly	alternative_name	species	size
+hg19	GRCh37	Homo sapiens	3137144693
+hg18	NCBI36	Homo sapiens	3104054490
+mm9	MGSCv37	Mus musculus	2745142291
+mm8	MGSCv36	Mus musculus	2716519436

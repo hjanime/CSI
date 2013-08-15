@@ -1,0 +1,9 @@
+#Raw_sample_name	genome_assembly	method	version	parameters*
+MAX_sc-197_SNU16_-_-_-_XO111_MJF11-P001_Peconic29304hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+MAX_sc-197_SNU16_-_-_-_XO211_MJF11-P001_Peconic29305hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+MYC_sc-764_SNU16_-_-_-_XO111_MJF11-P001_Peconic29303hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+RNA-Polymerase-II_8WG16_HCT116_-_-_-_XO111_MJF11-P001_Peconic29207hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+RNA-Polymerase-II_8WG16_HCT116_-_-_-_XO211_MJF11-P001_Peconic29208hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+RNA-Polymerase-II_8WG16_HeLa_-_-_-_XO111_MJF11-P001_Peconic29206hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+RNA-Polymerase-II_8WG16_SNU16_-_-_-_XO111_MJF11-P001_Peconic29201hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+RNA-Polymerase-II_8WG16_SNU16_-_-_-_XO21_MJF11-P001_Peconic29202hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
