@@ -1,9 +1,9 @@
-#Raw_sample_name	genome_assembly	method	version	parameters*
-MAX_sc-197_SNU16_-_-_-_XO111_MJF11-P001_Peconic29304hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-MAX_sc-197_SNU16_-_-_-_XO211_MJF11-P001_Peconic29305hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-MYC_sc-764_SNU16_-_-_-_XO111_MJF11-P001_Peconic29303hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-RNA-Polymerase-II_8WG16_HCT116_-_-_-_XO111_MJF11-P001_Peconic29207hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-RNA-Polymerase-II_8WG16_HCT116_-_-_-_XO211_MJF11-P001_Peconic29208hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-RNA-Polymerase-II_8WG16_HeLa_-_-_-_XO111_MJF11-P001_Peconic29206hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-RNA-Polymerase-II_8WG16_SNU16_-_-_-_XO111_MJF11-P001_Peconic29201hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
-RNA-Polymerase-II_8WG16_SNU16_-_-_-_XO21_MJF11-P001_Peconic29202hg19	hg19	MACS	2.0.10.20130520	-B	--llocal:20000	--broad	--broad-cutoff:0.01	--half-ext	-f:BAM	-g:hs	--bw:60	-q:0.001	--nomodel	--shiftsize:10	--tsize:40	--keep-dup:all
+#Raw_sample_name	genome_assembly	method	version	mapped_tags	unique_tags	pos_unique_count	neg_unique_count	sample_name	parameters*
+MAX_sc-197_SNU16_-_-_-_XO111_MJF11-P001_Peconic29304hg19	hg19	BWA	0.5.9-r16	14137988	12455322	6230395	6224924	MAX_sc-197_SNU16_XO111	default
+MAX_sc-197_SNU16_-_-_-_XO211_MJF11-P001_Peconic29305hg19	hg19	BWA	0.5.9-r16	17776901	15625494	7818406	7807088	MAX_sc-197_SNU16_XO211	default
+MYC_sc-764_SNU16_-_-_-_XO111_MJF11-P001_Peconic29303hg19	hg19	BWA	0.5.9-r16	6623954	5834167	2916665	2917502	MYC_sc-764_SNU16_XO111	default
+RNA-Polymerase-II_8WG16_HCT116_-_-_-_XO111_MJF11-P001_Peconic29207hg19	hg19	BWA	0.5.9-r16	17911721	15722031	7861097	7860934	RNAP-II_8WG16_HCT116_XO111	default
+RNA-Polymerase-II_8WG16_HCT116_-_-_-_XO211_MJF11-P001_Peconic29208hg19	hg19	BWA	0.5.9-r16	69674594	61087329	30532189	30555140	RNAP-II_8WG16_HCT116_XO211	default
+RNA-Polymerase-II_8WG16_HeLa_-_-_-_XO111_MJF11-P001_Peconic29206hg19	hg19	BWA	0.5.9-r16	6445379	5453203	2725270	2727933	RNAP-II_8WG16_HeLa_XO111	default
+RNA-Polymerase-II_8WG16_SNU16_-_-_-_XO111_MJF11-P001_Peconic29201hg19	hg19	BWA	0.5.9-r16	28143352	24696174	12340226	12355948	RNAP-II_8WG16_SNU16_XO111	default
+RNA-Polymerase-II_8WG16_SNU16_-_-_-_XO21_MJF11-P001_Peconic29202hg19	hg19	BWA	0.5.9-r16	28464191	25069416	12527356	12542060	RNAP-II_8WG16_SNU16_XO21	default

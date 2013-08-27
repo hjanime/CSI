@@ -1,0 +1,22 @@
+{% extends "table.html" %}
+
+{% block populate_table %}
+{% for item ,links, curr_id in item_list %}
+    <tr class>
+    {% for v in item %}
+        <td style="vertical-align:middle">{{ v }}</td>
+    {% endfor %}
+        <td style="vertical-align:middle">
+            <ul class="unstyled">
+                {% if links|length > 0 %}
+                    <li><a href="{% url 'exo:mapped_for_raw' raw_id=curr_id %}">All mapped</a></li>
+                {% endif %}
+            {% for m in links %}
+                <li><a href="#">{{ m.genome_obj.assembly_name }} {{ m.method_obj }}</a></li>
+            {% endfor %}
+            
+            </ul>
+        </td>
+    </tr>
+{% endfor %}
+{% endblock %}

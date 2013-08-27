@@ -164,6 +164,8 @@ def main( args ):
                 interIdx = getIntervalIdx( args.intervals, pair_dist )
                 if interIdx != None:
                     scores[ interIdx ].append( pair_score )
+                if pair_dist > 1000:
+                    print r
 
         f.close()
         

@@ -1,0 +1,52 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="{% static 'exo/index.css' %}" />
+
+</head>
+<body style="margin: 0 auto; width: 1000px" >
+
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox='0 0 680 680'
+  preserveAspectRatio="xMinYMin meet"
+  fill="none" id="entry">
+
+	<a xlink:href="{% url 'exo:raw' %}">
+        <rect x="20" y="20" class="left_col" width="180" height="100"></rect>
+        <text x="60" y="55" fill="black" style="dominant-baseline: central;">Raw data</text>
+    </a>
+
+    <a xlink:href="{% url 'exo:mapped' %}" >
+        <rect x="20" y="240" class="left_col" width="180" height="100"></rect>
+        <text x="60" y="275" fill="black">Mapped data</text>
+    </a>
+
+    <a xlink:href="{% url 'exo:peaks' %}">
+        <rect x="20" y="460" class="left_col" width="180" height="100"></rect>
+        <text x="60" y="495" fill="black">Peaks</text>
+    </a>
+
+    <a xlink:href="{% url 'exo:genomes' %}">
+        <rect x="480" y="20" class="right_col" width="180" height="100"></rect>
+        <text x="520" y="55" fill="black">Genomes</text>
+    </a>
+
+    <a xlink:href="{% url 'exo:chroms' %}">
+        <rect x="480" y="240" class="right_col" width="180" height="100"></rect>
+        <text x="520" y="275" fill="black">Chromosomes</text>
+    </a>
+
+    <a xlink:href="{% url 'exo:genes' %}">
+        <rect x="480" y="460" class="right_col" width="180" height="100"></rect>
+        <text x="520" y="495" fill="black">Genes</text>
+    </a>
+
+    <a xlink:href="{% url 'exo:peakpairs' %}">
+        <rect x="250" y="600" class="mid_col" width="180" height="100"></rect>
+        <text x="290" y="635" fill="black">Peak pairs</text>
+    </a>
+ </svg>
+</body>
+</html>

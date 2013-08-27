@@ -69,8 +69,11 @@ class Parameter_set(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
     
+    def __unicode__(self):
+        return "%s_%s_%s"%(self.method_obj.method_name, self.method_obj.method_version, self.id)
+    
 class Parameter(models.Model):
-    param_set = models.ForeignKey(Parameter_set)
+    param_set = models.ForeignKey(Parameter_set, null=False)
     param_name = models.CharField(max_length=50)
     param_value = models.CharField(max_length=200) #some string values can be very long)
 
@@ -92,6 +95,9 @@ class Mapping(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
     
+    def __unicode__(self):
+        return "%s %s %s"%(self.sample_obj.name, self.genome_obj.assembly_name, self.method_obj)
+    
 
 
 '''
@@ -108,6 +114,7 @@ class Mapping_parameters(models.Model):
 '''
     
 class Sample(models.Model):
+    name = models.CharField(max_length=100, unique=True)
     mapped_tags = models.PositiveIntegerField(null=False)
     unique_tags = models.PositiveIntegerField(null=False)
     positive_unique_count = models.PositiveIntegerField(null=False)
@@ -116,6 +123,9 @@ class Sample(models.Model):
     
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)
+    
+    def __unicode__(self):
+        return '%s %s'%(self.name, self.mapping_obj.method_obj.method_name)
 
 
 class Call_peak(models.Model):
@@ -146,15 +156,16 @@ class Peak(models.Model):
     chrom = models.CharField(max_length=40)
     start = models.PositiveIntegerField( null=False ) #0-based
     end = models.PositiveIntegerField( null=False ) #1-based
-    size = models.PositiveSmallIntegerField(null=False)
+    size = models.PositiveIntegerField(null=False)
     strand = models.CharField(max_length=1, choices=(('+','Positive'),('-', 'Negative'),('.','Unspecified'),))
     tag_count = models.PositiveIntegerField(null=False)
-    summit_pos_pileup = models.PositiveSmallIntegerField(null=False) #Origin summit location by peak calling method
+    summit_pos_pileup = models.IntegerField(null=False) #Origin summit location by peak calling method
     summit_val_pileup = models.FloatField(null=False)
-    summit_pos_5 = models.PositiveSmallIntegerField()
+    summit_pos_5 = models.IntegerField()
     summit_val_5 = models.FloatField()
     p_value = models.FloatField()
     q_value = models.FloatField()
+    fold = models.FloatField()
 
     created_at = models.DateTimeField(auto_now_add = True)
     updated_at = models.DateTimeField(auto_now = True)

@@ -1,0 +1,31 @@
+{% extends "table.html" %}
+
+{% block populate_table %}
+{% for item, raw_obj, genome_obj, params_obj, links in item_list %}
+    <tr class>
+    {% for v in item %}
+        <td style="vertical-align:middle">{{ v }}</td>
+    {% endfor %}
+    	<td style="vertical-align:middle">
+    		<a href="#">{{ raw_obj.name }}</a>
+    	</td>
+    	<td style="vertical-align:middle">
+    		<a href="#">{{ genome_obj.assembly_name }}</a>
+    	</td>
+    	<td style="vertical-align:middle">
+    		<a href="#">{{ params_obj.method_obj }}</a>
+    	</td>
+        <td style="vertical-align:middle">
+            <ul class="unstyled">
+                {% if links|length > 1 %}
+                    <li><a href="#">All peaksets</a></li>
+                {% endif %}
+            {% for m in links %}
+                <li><a href="#">aaa</a></li>
+            {% endfor %}
+            
+            </ul>
+        </td>
+    </tr>
+{% endfor %}
+{% endblock %}

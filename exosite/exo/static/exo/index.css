@@ -1,0 +1,53 @@
+.left_col {
+	fill: #b6d7a8;
+}
+
+.right_col {
+	fill: #f9cb9c;
+}
+
+.mid_col {
+	fill: #f9cb9c;
+}
+
+.h-list li{
+	display: block;
+	list-style-type: none;
+	padding-right: 20px;
+	max-width: 400px;
+	min-width: 60px;
+	overflow: hidden;
+}
+
+body {
+	font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
+	font-size: 80%;
+}
+
+#accordion{
+	padding: 0;
+}
+
+.h-list {
+	margin: 0 5px;
+	width: 30%;
+	float: left;
+}
+
+
+.my-accordion-click{
+	margin: 0;
+}
+
+.li-label {
+	display: inline-block;
+	width: 100px;
+}
+
+.link-to-map{
+	clear: both;
+	position: relative;
+	display: block;
+	width: 30%;
+	float: left;
+}
