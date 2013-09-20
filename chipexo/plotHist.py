@@ -55,7 +55,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser("Plot histogram for the data in a file.")
     parser.add_argument('-s', '--sep', help="The separater of the data.")
     parser.add_argument('-l', '--label', help="The file with the labels.")
-    parser.add_argument('-b', '--bins', type=int, default=50, help="The number of bins")
+    parser.add_argument('-b', '--bins', type=int, default=50, help="The number of bins. Default: 50.")
     parser.add_argument('input', help="The file contains the data. Each row represent a sample.")
     parser.add_argument('min', type=int, help="Minimum for plot")
     parser.add_argument('max', type=int, help="Maximum for plot")

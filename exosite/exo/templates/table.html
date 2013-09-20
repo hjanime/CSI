@@ -8,30 +8,28 @@
                 });
                 return ui;
             };
-            $('.sortable_table tbody').sortable({
+            $('#main-tbody').sortable({
                 helper: fixHelper,
                 placeholder: "ui-state-highlight"
             });
         })
 
     </script>
+    {% block more_statics %}
+    {% endblock %}
 {% endblock %}
 {% block content %}
-    
-    <div id="accordion">
-        <div style="vertical-align:middle">
-            <table class="table table-striped table-bordered sortable_table">
-                <thead>
-                {% for hn in table_header %}
-                    <th>{{ hn }}</th>
-                {% endfor %}
-                </thead>
-                <tbody >
-                    {% block populate_table %}
-                    {% endblock %}
-                </tbody>
-            </table>
-        </div>
-    
+    <div style="vertical-align:middle" class="table-area">
+        <table id="main-table" class="table table-striped table-bordered sortable_table table-nonfluid">
+            <thead>
+            {% for hn in table_header %}
+                <th>{{ hn }}</th>
+            {% endfor %}
+            </thead>
+            <tbody id="main-tbody">
+                {% block populate_table %}
+                {% endblock %}
+            </tbody>
+        </table>
     </div>
 {% endblock %}

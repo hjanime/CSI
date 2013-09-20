@@ -51,3 +51,20 @@ body {
 	width: 30%;
 	float: left;
 }
+
+
+.table-nonfluid {
+	min-width: 60%;
+   	width: auto;
+}
+
+
+.row-fluid > .sidebar-nav-fixed {
+	width: 240px;
+    position:absolute;
+ }
+
+.row-fluid > .span-fixed-sidebar {
+    margin-left: 242px;
+
+}

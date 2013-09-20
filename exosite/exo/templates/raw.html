@@ -8,11 +8,11 @@
     {% endfor %}
         <td style="vertical-align:middle">
             <ul class="unstyled">
-                {% if links|length > 0 %}
+                {% if links|length > 1 %}
                     <li><a href="{% url 'exo:mapped_for_raw' raw_id=curr_id %}">All mapped</a></li>
                 {% endif %}
             {% for m in links %}
-                <li><a href="#">{{ m.genome_obj.assembly_name }} {{ m.method_obj }}</a></li>
+                <li><a href="{% url 'exo:mapped' %}?map_id={{ m.id }}">{{ m.genome_obj.assembly_name }} {{ m.method_obj }}</a></li>
             {% endfor %}
             
             </ul>

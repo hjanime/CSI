@@ -5,10 +5,10 @@ SID = { 'length': 3,
         'strand': 4,
         'summit': 5,
         'height': 6,
-        'height5': 7,
-        'pvalue': 8,
-        'fold'  : 9,
-        'qvalue': 10 }
+        'height5': 8,
+        'pvalue': 9,
+        'fold'  : 10,
+        'qvalue': 11 }
 
 def getRecords( filename ):
     f = open( filename )
@@ -23,10 +23,13 @@ def getRecords( filename ):
             tokens[3] = int( tokens[3] )
             tokens[5] = int( tokens[5].split(',')[0] )
             tokens[6] = float( tokens[6] )
-            tokens[7] = float( tokens[7] )
+            tokens[7] = int( tokens[7] )
             tokens[8] = float( tokens[8])
             tokens[9] = float( tokens[9] )
             tokens[10] = float( tokens[10] )
+            tokens[11] = float( tokens[11] )
+            tokens[-1] = float( tokens[-1] )
+            tokens[-2] = int(tokens[-1])
             if tokens[0] not in records:
                 records[ tokens[0] ] = []
             records[ tokens[0] ].append( tokens )

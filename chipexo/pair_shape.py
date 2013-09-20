@@ -103,8 +103,10 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
     print "rwig: ", rwig
     offset = 5
     expandCol = 1
-    out1 = open(prefix + "_singletons_shape_true.bed",'w')
-    out2 = open(prefix + "_pairs_shape_true.gff", "w")
+    out1 = open(prefix + "_singletons_shape_c2c.bed",'w')
+    out2 = open(prefix + "_pairs_shape_c2c.gff", "w") #c2c means center-to-center
+    out3 = open(prefix + "_pairs_shape_true_e2e_detail.gff",'w') #e2e means end-to-end.
+    out4 = open(prefix + "_pairs_shape_true_e2e.gff",'w')
     print fpeaks.keys()
     for chrom in fpeaks:
         if chrom not in rpeaks:
@@ -140,7 +142,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
             currFw = expandedFw[ max( 0, start - fw[0,0] ) + offset : max( 0, end - fw[0,0] ) + offset + 1]
             si = bisect.bisect_left( rends, es )
             ei = bisect.bisect_right( rstarts, ee )
-            ftagCounts,_,_,_ = gs.getTagCount( fwig, chrom, start, end )
+            ftagCounts,_,_ = gs.getTagCount( fwig, chrom, start, end )
 
             #print ei - si
             maxScore = 0
@@ -154,7 +156,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 rstart = currrp[1]
                 rend = currrp[2]
                 currRw = expandedRw[ max( 0, rstart - rw[0, 0] ) + offset : max( 0, rend - rw[0,0] ) + offset + 1 ]
-                rtagCoungs,_,_,_ = gs.getTagCount( rwig, chrom, currrp[1], currrp[2] )
+                rtagCoungs,_,_ = gs.getTagCount( rwig, chrom, currrp[1], currrp[2] )
 
                 tempScore, tempDist, tempRpos, tempAve, tempHeight = getScore( currFw, currRw, start, rstart )
 
@@ -182,6 +184,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 pass
         singletons = []
         pairs = []
+        pairs_extended = []
         while len(unpairedF) > 0:
             for u in unpairedF:
                 if len( fprefer[u] ) > 0:
@@ -209,6 +212,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 pairStart = f[3] - f[2] + 1
                 pairEnd = f[3] 
                 pairs.append( [fp[i][0],f[5],'.',pairStart, pairEnd,f[4],'.','.','cw_distance='+str(f[2]) ] )
+                pairs_extended.append( [fp[i][0],'.','.',fp[i][1]+1, rp[f[0]][2],f[5],'.','.','bestAve=%f,maxScore=%f,bestDist=%d'%(f[4],f[1],f[2]) ] + fp[i] + rp[f[0]] )
 
         for i,f in enumerate(pairR):
             rp[i][1] -= 1
@@ -226,8 +230,18 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
         for p in pairs:
             out2.write('\t'.join([str(i) for i in p]))
             out2.write('\n')
+        out3.write('#')
+        out3.write('\t'.join(['chrom','source','feature','start','end','bestHeight','frame','aattribute','peak1','','','','','', 'peak2']))
+        out3.write('\n')
+        for p in pairs_extended:
+            out3.write('\t'.join([str(i) for i in p]))
+            out3.write('\n')
+            out4.write('\t'.join([str(i) for i in p[0:8]]))
+            out4.write('\n')
     out1.close()
     out2.close()
+    out3.close()
+    out4.close()
 
 
 

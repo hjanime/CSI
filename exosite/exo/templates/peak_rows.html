@@ -1,0 +1,22 @@
+{% for peak in peak_list %}
+	<tr>
+		<td>{{ peak.chrom }}</td>
+		<td>{{ peak.start }}</td>
+		<td>{{ peak.end }}</td>
+		<td>{{ peak.size }}</td>
+		<td>{{ peak.strand }}</td>
+		<td>{{ peak.tag_count }}</td>
+		<td>{{ peak.summit_pos_pileup }}</td>
+		<td>{{ peak.summit_val_pileup }}</td>
+		<td>{{ peak.summit_pos_5 }}</td>
+		<td>{{ peak.summit_val_5 }}</td>
+		<td>{{ peak.p_value }}</td>
+		<td>{{ peak.q_value }}</td>
+		<td>{{ peak.fold }}</td>
+	</tr>
+{% endfor %}
+{% if not page.has_next %}
+	<tr>
+		<td colspan="13">No more peaks</td>
+	</tr>
+{% endif %}

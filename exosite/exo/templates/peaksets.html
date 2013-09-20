@@ -1,0 +1,12 @@
+{% extends "table.html" %}
+
+{% block populate_table %}
+{% for call_peak in item_list %}
+    <tr class>
+    	<td><a href="#">{{ call_peak.sample_obj.name }}</a></td>
+    	<td>{{ call_peak.peak_set.count }}</td>
+    	<td><a href="#">{{ call_peak.params.method_obj }}</a></td>
+    	<td><a class="btn btn-primary" href="{% url 'exo:peaks_for_call' call_peak.id  %}">View peaks</a></td>
+    </tr>
+{% endfor %}
+{% endblock %}

@@ -7,7 +7,31 @@
         <td style="vertical-align:middle">{{ v }}</td>
     {% endfor %}
     	<td style="vertical-align:middle">
-    		<a href="#">{{ raw_obj.name }}</a>
+            <div class="dropdown">
+    		  <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ raw_obj.name }}</a>
+              <div class="dropdown-menu">
+                <table class="table">
+                  <!-- links -->
+                    <thead>
+                        <tr>
+                            <th>fdafsda</th>
+                            <th>fdsafdas</th>
+                            <th>fjvnchafa</th>
+                            <th>fsafvnvnhfa</th>
+                        <tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>jfkdslafjla</td>
+                            <td>fafdsafasd</td>
+                            <td>fdsafdsacsa</td>
+                            <td>fsdajfklsdaf</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <a hre"#">fdsafds</a>
+              </div>
+            </div>
     	</td>
     	<td style="vertical-align:middle">
     		<a href="#">{{ genome_obj.assembly_name }}</a>
@@ -16,12 +40,12 @@
     		<a href="#">{{ params_obj.method_obj }}</a>
     	</td>
         <td style="vertical-align:middle">
-            <ul class="unstyled">
+            <ul class="unstyled" style="margin-bottom: 0;">
                 {% if links|length > 1 %}
                     <li><a href="#">All peaksets</a></li>
                 {% endif %}
             {% for m in links %}
-                <li><a href="#">aaa</a></li>
+                <li><a href="{% url 'exo:peaks_for_call' m.id %}">Set_{{ m.id }}</a></li>
             {% endfor %}
             
             </ul>

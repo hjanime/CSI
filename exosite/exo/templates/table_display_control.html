@@ -1,0 +1,44 @@
+<div id="table-display-control" class="well ">
+	<form id="table-control-form">
+	{% csrf_token %}
+		<fieldset id="filter-field">
+			<legend>Filter by</legend>
+			<label for="filter_chrom"><strong>Chromosome</strong></label>
+			<input type="text" name="filter_chrom" class="offset1 input-medium" id="filter_chrom" placeholder="eg: chr1, chr2 ...">
+			<label for="filter_minsize"><strong>Size</strong></label>
+			<input type="text" name="filter_minsize" id="filter_minsize" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxsize" id="filter_maxsize" class="offset1 input-mini" placeholder="max">
+			
+			<label for="filter_minpvalue"><strong>p-value</strong></label>
+			<input type="text" name="filter_minpvalue" id="filter_minpvalue" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxpvalue" id="filter_maxpvalue" class="offset1 input-mini" placeholder="max">
+
+			<label for="filter_minqvalue"><strong>p-value</strong></label>
+			<input type="text" name="filter_minqvalue" id="filter_minqvalue" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxqvalue" id="filter_maxqvalue" class="offset1 input-mini" placeholder="max">
+
+			<label for="filter_minfold"><strong>Fold</strong></label>
+			<input type="text" name="filter_minfold" id="filter_minfold" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxfold" id="filter_maxfold" class="offset1 input-mini" placeholder="max">
+
+			<label for="filter_minfold"><strong>Tag count</strong></label>
+			<input type="text" name="filter_mintagcount" id="filter_mintagcount" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxtagcount" id="filter_maxtagcount" class="offset1 input-mini" placeholder="max">
+
+			<label for="filter_minsummitvp"><strong>Summit valueP</strong></label>
+			<input type="text" name="filter_minsummitvp" id="filter_minsummitvp" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxsummitvp" id="filter_maxsummitvp" class="offset1 input-mini" placeholder="max">
+
+			<label for="filter_minsummitv5"><strong>Summit value5</strong></label>
+			<input type="text" name="filter_minsummitv5" id="filter_minsummitv5" class="offset1 input-mini" placeholder="min">
+			<input type="text" name="filter_maxsummitv5" id="filter_maxsummitv5" class="offset1 input-mini" placeholder="max">
+		</fieldset>
+		<fieldset id="sort-field">
+			<legend style="margin-bottom:0;">Sort by</legend>
+			<button type="button" class="btn" onclick="add_sort_row(event)" style="margin: 5px 0;">Add</button>	
+		</fieldset>
+		<legend></legend>
+		<button type="button" id="table-control-reset-btn" class="btn btn-warning" onclick="clearFilterAndSort()">Clear</button>
+		<button type="submit" id="table-control-submit-btn" class="offset1 btn btn-primary">Apply</button>
+	</form>
+</div>

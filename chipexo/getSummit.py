@@ -37,24 +37,17 @@ def getTagCount( wig, chrom, start, end ):
     wige = bisect_right( wig[chrom][:, 0 ], end )
     wigOrig = wig[chrom][ :, 1 ]
     wigv = wig[ chrom ][ : ,2 ]
+    offset = 0
+    region = expandWig(wig[chrom][wigs:wige:],offset,1) #will be expanded and smoothed
     tagCount = 0
     numHigh = 0
     summitv = 0
     summitidx = [ wigs ]
-    for wi in range( wigs , wige ):
-        tagCount += wigOrig[ wi ] #add the number of tags together.
-        if wigv[wi] > summitv:
-            numHigh = 1
-            summitidx[ 0 ] = wi
-            summitv = wigv[ wi ]
-        elif wigv[ wi ] == summitv:
-            if len( summitidx ) <= numHigh:
-                summitidx.append( wi )
-            else:
-                summitidx[ numHigh ] = wi
-            numHigh += 1
+    tagCount = wigOrig[wigs:wige].sum()
+    summitv = region.max()
+    summitidx = list(np.where(region==summitv)[0] + wig[chrom][wigs,0])
 
-    return tagCount, numHigh, summitidx, summitv
+    return tagCount, summitidx, summitv
 
 def loadRejectRegion( filename ):
     f = open( filename )
@@ -91,14 +84,14 @@ def writeAll( outxls, peaks, summits, records, thres, filidx, filtered ):
             outxls.write( '\t'.join( r ) )
             outxls.write( '\n' )
 
-            peaks.write( '\t'.join( [r[0], str(int(r[1]) - 1), r[2], r[11], r[-2], r[4]] ))
+            peaks.write( '\t'.join( [r[0], str(int(r[1]) - 1), r[2], r[12], r[-2], r[4]] ))
             peaks.write( '\n' )
 
             for p in r[5].split(','):
-                summits.write( '\t'.join( [ r[0], str(int(p)-1), p, r[11], r[-2], r[4] ] ))
+                summits.write( '\t'.join( [ r[0], str(int(p)-1), p, r[12], r[-2], r[4] ] ))
                 summits.write( '\n' )
         else:
-            filtered.write( '\t'.join( [r[0], str(int(r[1]) - 1), r[2], r[11], r[-2], r[4]] ))
+            filtered.write( '\t'.join( [r[0], str(int(r[1]) - 1), r[2], r[12], r[-2], r[4]] ))
             filtered.write( '\n' )
 
             rejected += 1
@@ -119,7 +112,7 @@ def findTruePeak( args, sample, shift, tsize, strand, outdir, mappedCount, rejec
     bed = open("%s_summits.out.bed"%( commonName ), 'w')
     filtered = open("%s_peaks.filtered.out.bed"%( commonName, ), 'w')
     readHeader = False
-    wig = loadWig(os.path.join(args.wigdir, "%s_%s.wig" % ( sample, SMAP[strand], )), smooth=False)
+    wig = loadWig(os.path.join(args.wigdir, "%s_%s.wig" % ( sample, SMAP[strand], )), smooth=False ,strand=SMAP[strand])
     records = []
     coverages = []
     lengths = []
@@ -138,6 +131,7 @@ def findTruePeak( args, sample, shift, tsize, strand, outdir, mappedCount, rejec
             tokens = r.strip().split('\t')
             tokens.insert(4,"strand")
             tokens.insert(7,"5-pileup")
+            tokens.insert(7,"5-summit pos")
             tokens.append( "tagCount" )
             tokens.append( "RPKM" )
             outxls.write('\t'.join(tokens))
@@ -160,10 +154,9 @@ def findTruePeak( args, sample, shift, tsize, strand, outdir, mappedCount, rejec
                 wigv = wig[ chrom ][ :, 2 ]
                 
                 #maxOrig = np.max( wig[ chrom ][ wigs:wige, 1] )
-                tagCount, numHigh, summitidx, summitv = getTagCount( wig, chrom, start, end )
-                summitps = wig[ chrom ][ :, 0 ][ summitidx[ 0 : numHigh ] ]
+                tagCount, summitps, summitv = getTagCount( wig, chrom, start, end )
                 summitp = ','.join( [ str(int(i)) for i in summitps ] )  #get all positions
-                tokens[4] = summitp
+                #tokens[4] = summitp
                 pileup.append( float(tokens[5]) )
                 pileup5.append( summitv )
                 rpkm = tagCount * 1.0 * 1000 * 1000000 / ( length * mappedCount )
@@ -178,7 +171,8 @@ def findTruePeak( args, sample, shift, tsize, strand, outdir, mappedCount, rejec
                 peaks.write('\n')
                 '''
                 tokens.insert(4, strand) #add the strand information
-                tokens.insert(7, str( summitv )) # The new p
+                tokens.insert(7, str( summitv )) # The new summit value
+                tokens.insert(7, str( summitp )) # The new position
                 tokens.append( str( tagCount ) )
                 tokens.append( str( rpkm ) )
                 #tokens.append( str( rpm ) )

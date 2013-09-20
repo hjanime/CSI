@@ -1,0 +1,8 @@
+#Sample_name	pair_file_location	params*
+MAX_sc-197_SNU16_XO111	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed/
+MAX_sc-197_SNU16_XO211	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed
+#MYC_sc-764_SNU16_XO111	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed
+RNAP-II_8WG16_HCT116_XO111	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed
+RNAP-II_8WG16_HCT116_XO211	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed
+#RNAP-II_8WG16_HeLa_XO111	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed
+RNAP-II_8WG16_SNU16_XO111	/home/caofan/Documents/macs_out/final6/sh10_t40_all/gaussianSmoothed

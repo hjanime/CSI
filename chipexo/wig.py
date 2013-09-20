@@ -71,6 +71,9 @@ def density_nb( expanded, r, mean, strand ):
 
 
 def expandWig( chromWig, offset, expandCol, smooth=True, strand = '+', method='g', kargs=None ):
+    '''
+    strand is not used in Gaussian smoothing.
+    '''
     assert chromWig != None
     assert chromWig.shape[0] > 0 and chromWig.shape[1] > 0 and expandCol < chromWig.shape[1]
     assert offset >= 0
@@ -161,6 +164,8 @@ def loadWig(filename, smooth = True, strand = '+'):
     print "loading wig --------------"
 
     NUM_PROCESSES = 3
+    if not smooth:
+        NUM_PROCESSES = 4
     processID = 1
     processes = []
     offset = 5
@@ -179,7 +184,7 @@ def loadWig(filename, smooth = True, strand = '+'):
     for i in range( NUM_PROCESSES ):
         processes[i].join()
 
-    print 'Done loading'
+    print 'Done loading ', filename
     return wig
 
 

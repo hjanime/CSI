@@ -1,0 +1,103 @@
+{% extends 'table.html' %}
+{% load peaks_tag %}
+
+{% block statics %}
+<script type="text/javascript">
+	var pageNum = {{ page.number }};
+	var hasNextPage = {{ page.has_next|lower }};
+	var baseUrl = '{% url "exo:peaks_for_call" run_obj.id %}';
+	var has_filter = {{ has_filter|lower }};
+
+	var loadOnScroll = function() {
+		if ($(window).scrollTop() > $(document).height() - $(window).height()-5) {
+			$(window).unbind();
+			loadPeaks();
+		}
+	};
+
+	var loadPeaks_post = function(page_num) {
+		$.ajax({
+			url: baseUrl,
+			datatype: "html",
+			type: "POST",
+			data: $('#table-control-form').serialize() + "&page_num=" + page_num,
+			timeout: "1000",
+			success: function(html) {
+
+				if( html ) {
+					$("#main-tbody").append(html);
+				} else {
+					hasNextPage = false;
+				}
+			},
+			complete: function(data,textStatus){
+				$(window).bind('scroll', loadOnScroll);
+			}
+		});
+	};
+
+	var loadPeaks = function() {
+		if(hasNextPage === false) {
+			return false;
+		}
+		pageNum = pageNum + 1;
+		
+		if( !has_filter ) {
+			$.ajax({
+				url: baseUrl + "?page_num=" + pageNum,
+				datatype: "html",
+				type: "GET",
+				timeout: "1000",
+				success: function(html) {
+					if( html ) {
+						$("#main-tbody").append(html);
+					} else {
+						hasNextPage = false;
+					}
+				},
+				complete: function(data,textStatus){
+					$(window).bind('scroll', loadOnScroll);
+				}
+			});
+		} else {
+			loadPeaks_post(pageNum);
+		}
+	};
+
+	var clearFilterAndSort = function() {
+		$('#filter-field').find('input').val('');
+		$('#sort-field').find('.control-group').remove();
+	}
+
+	var remove_one_sort = function(event) {
+		$(event.target).parent().remove();
+	};
+
+	var add_sort_row = function(event) {
+		var html = "{% include 'sort_control_group.html' %}";
+		$(html).insertBefore(event.target);
+	};
+
+	$(document).ready(function(){
+		clearFilterAndSort();
+		$(window).bind('scroll', loadOnScroll);
+		$('#table-control-form').submit(function(event) {
+			event.preventDefault();
+			$(window).unbind();
+			$('#main-tbody').empty();
+			has_filter = true;
+			pageNum = 1;
+			loadPeaks_post(pageNum);
+		});
+	});
+</script>
+{% endblock %}
+
+{% block populate_table %}
+{% load_peaks peak_list page %}
+{% endblock %}
+
+
+{% block sidebar %}
+{% include 'table_display_control.html' %}
+{% endblock %}
