@@ -1,4 +1,3 @@
-import os,sys
 import numpy as np
 import getSummit as gs
 import wig as WIG
@@ -6,6 +5,109 @@ import argparse
 from operator import itemgetter
 from sortedcollection import SortedCollection
 import bisect
+from dpgmm import dpgmm
+
+class Peak:
+    '''
+    A class to represent peaks with various functions such as dissect peaks etc.
+    '''
+    def __init__(self, ptuple):
+        self.chrom, self.start, self.end, self.name, self.score, self.strand = ptuple
+        self.dpgmmModel = None
+        self.dpgmmDraw = None
+        self.subPeaks = None
+        self.totalTags = None
+        self.wig = None
+
+    def setWig(self, chromWig):
+        '''
+        Set the original wig data within the peak region.
+        Argument: chromWig, the wig data for the whole chromosome.
+        Result: the self.wig will be set with the same columns as the chromWig.
+        '''
+        ws = bisect.bisect_left(chromWig[:,0], self.start)
+        we = bisect.bisect_right(chromWig[:,0], self.end)
+        self.wig = chromWig[ws:we,:]
+        self.totalTags = self.wig[:,1].sum()
+
+    def __add_data_to_model(self):
+        '''
+        Helper method to populate the DPGMM model with the wig data.
+        '''
+        for i in range(self.wig.shape[0]):
+            for j in range(int(round(self.wig[i,1]))):
+                self.dpgmmModel.add([ self.wig[i,0] ])
+
+    def dissect(self, n_components=5):
+        '''
+        Apply DPGMM to the peak and find the components.
+        Argument: n_components (optional), the maximum number of components. Defaults to 5, which is sufficient in most cases.
+        '''
+        self.dpgmmModel = dpgmm.DPGMM(1, n_components)
+        self.__add_data_to_model()
+        self.dpgmmModel.setPrior()
+        self.dpgmmModel.solve()
+        self.dpgmmDraw = np.array(self.dpgmmModel.intMixture())
+
+    def selectComponents(self, frac=0.3):
+        '''
+        Returns an array of the bool values of whether a component is selected.
+        The threshold is the max_weight * frac.
+        Argument: frac, the fraction of the maximum weight to be used as the threshold. Defaults to 0.3.
+        '''
+        return self.dpgmmDraw[0] > self.dpgmmDraw[0].max() * frac
+
+
+    def populateSubPeaks(self):
+        '''
+        Calculate the subpeaks given the mixture model.
+        '''
+        sbools = self.selectComponents()
+        sweights = self.dpgmmDraw[0][sbools]
+
+        scaleFactor = 1 / sweights.sum()
+
+        selected = zip(scaleFactor * self.dpgmmDraw[0][sbools], self.dpgmmDraw[1][sbools])
+        selected.sort(key = lambda k: k[1].getLoc() )
+        maxs, mins = self._getLocalMaxAndMin(selected)
+        lastMin = 0
+        for m in mins:
+            self.subPeaks.append(Peak((self.chrom, self.start + lastMin, self.start + m, self.name+'_1', self.score, self.strand  )))
+            lastMin = m
+
+    def _getProb(self, selected,x):
+        '''
+        Return the probability density of a point.
+        '''
+        y = 0
+        for s in selected:
+            y += s[0] * s[1].prob(x)
+
+        return x
+
+    def _getLocalMaxAndMin(self, selected):
+        '''
+        Return two lists, one for local maximums and one for local minimums.
+        The local minimums should be located between local maximums, as dividing points.
+        '''
+        x = range(int(self.wig[0,0]), int(self.wig[-1,0]) + 1)
+        y = []
+        for i in x:
+            y.append(self._getProb(selected, i))
+
+        from scipy.signal import argrelextrema
+        maxs = argrelextrema(y, np.greater)[0]
+        mins = argrelextrema(y, np.less)[0]
+
+        return maxs, mins
+
+
+
+
+
+
+
+
 
 
 def loadPeaks( filename ):
@@ -54,8 +156,8 @@ def getScore( fp, rp, fstart, rstart ):
     rend = rstart + len( rp ) - 1
     fmean = sum( fp ) / len( fp )
     rmean = sum( rp ) / len( rp )
-    newfp = np.array( [ ( t / fmean) ** 2 for t in fp ], dtype="float32")
-    newrp = np.array( [ ( t / rmean) ** 2 for t in rp ], dtype="float32")
+    newfp = np.array( [ ( t / fmean) ** 2 for t in fp ], dtype="float64")
+    newrp = np.array( [ ( t / rmean) ** 2 for t in rp ], dtype="float64")
     maxScore = 0
     shift = 0
     i = 0
@@ -71,7 +173,7 @@ def getScore( fp, rp, fstart, rstart ):
         tempHeight = 0
         totalRaw = 0
         for j in range( tempStart, tempEnd + 1 ):
-            temp =  newfp[ j - ( fstart + i ) ] * newrp[ j - rstart ]  
+            temp =  newfp[ j - ( fstart + i ) ] * newrp[ j - rstart ]
             tempRawHeight = fp[ j - ( fstart + i ) ] + rp[ j - rstart ]
             if tempRawHeight >  tempHeight:
                 tempHeight = tempRawHeight
@@ -96,11 +198,11 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
     Assuming that the peaks on one strand is mutually exclusive.
     They do not overlap with each other.
     In this case, the ordering of the starts of the peaks and the
-    ends of the peaks are the same. And that when the starts are 
+    ends of the peaks are the same. And that when the starts are
     sorted, the ends are also sorted.
     '''
-    print "fwig: ", fwig
-    print "rwig: ", rwig
+    #print "fwig: ", fwig
+    #print "rwig: ", rwig
     offset = 5
     expandCol = 1
     out1 = open(prefix + "_singletons_shape_c2c.bed",'w')
@@ -210,7 +312,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 #pairStart = (2*f[3] - f[2])/2
                 #pairEnd = pairStart + 1
                 pairStart = f[3] - f[2] + 1
-                pairEnd = f[3] 
+                pairEnd = f[3]
                 pairs.append( [fp[i][0],f[5],'.',pairStart, pairEnd,f[4],'.','.','cw_distance='+str(f[2]) ] )
                 pairs_extended.append( [fp[i][0],'.','.',fp[i][1]+1, rp[f[0]][2],f[5],'.','.','bestAve=%f,maxScore=%f,bestDist=%d'%(f[4],f[1],f[2]) ] + fp[i] + rp[f[0]] )
 
