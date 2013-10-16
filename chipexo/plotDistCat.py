@@ -59,7 +59,7 @@ def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200,saveFig=None)
         total.append(len(d))
         tempy,binEdges = np.histogram(d,bins=range(201),normed=1)
         y.append(tempy)
-    
+
     #print y
     #print binEdges
     binCenters = 0.5*(binEdges[1:]+binEdges[:-1])
@@ -96,10 +96,10 @@ def plotBox(filename, data, intervals, scoretype, saveFig = None):
         totalCount += len(d)
 
 
-    fig_sub.boxplot(data) 
+    fig_sub.boxplot(data)
     pl.xticks( [i+1 for i in range( len( intervals) - 1 )], xlabels, rotation=20)
     fig_sub.set_ylim([0,total/totalCount + 30])
-    saveOrPrint(fig, filename, scoretype, saveFig) 
+    saveOrPrint(fig, filename, scoretype, saveFig)
     #fig.close()
     pl.close()
 
@@ -153,6 +153,7 @@ def main( args ):
             tokens = r.strip().split('\t')
             #read_count = float(tokens[])
             pair_dist = int(tokens[ args.distCol ].split('=')[-1])
+            if pair_dist <= 0: continue
             cates = set(tokens[ args.typeCol ].lower().split(':'))
             for c in cates:
                 c = c.replace('ncrna_','') #remove the ncrna tag
@@ -168,12 +169,12 @@ def main( args ):
                     print r
 
         f.close()
-        
+
         #plotFigure(filename, exp, CATEGORIES, colors, 'Read Count', 'exp')
-        
-        
+
+
         plotFigure(os.path.basename(filename), dist[1:], CATEGORIES[1:], colors, 'Distance (bp)', 'dist', 50, saveFig=args.savefig)
-        
+
 
         plotFigure(os.path.basename(filename), dist_s, CATEGORIES_S, colors_s, 'Distance (bp)', 'dist_s', 50, saveFig=args.savefig)
 

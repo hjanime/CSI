@@ -57,7 +57,7 @@ class DPGMM:
       self.z = None # The matrix of multinomials over stick-assignment for each sample, aligned with the data matrix. In the case of incrimental use will not necessarily be complete.
 
       self.skip = 0 # Number of samples at the start of the data matrix to not bother updating - useful to speed things up with incrimental learning.
-      self.epsilon = 1e-4 # Amount of change below which it stops iterating.
+      self.epsilon = 1e-5 # Amount of change below which it stops iterating.
 
       # The cache of stuff kept around for speed...
       self.nT = [None]*self.stickCap # The student T distribution associated with each Gaussian.
@@ -72,13 +72,13 @@ class DPGMM:
     self.stickCap += inc
     self.n += map(lambda _: gcp.GaussianPrior(self.dims), xrange(inc))
     self.v = numpy.append(self.v,numpy.ones((inc,2), dtype=numpy.float64),0)
-    
+
     if self.z!=None:
       self.z = numpy.append(self.z, numpy.random.mtrand.dirichlet(32.0*numpy.ones(inc), size=self.z.shape[0]), 1)
       weight = numpy.random.mtrand.dirichlet(numpy.ones(2), size=self.z.shape[0])
       self.z[:,:self.stickCap-inc] *= weight[:,0].reshape((self.z.shape[0],1))
       self.z[:,self.stickCap-inc:] *= weight[:,1].reshape((self.z.shape[0],1))
-    
+
     self.nT += [None] * inc
     self.vExpLog = numpy.append(self.vExpLog,-1.0*numpy.ones(inc, dtype=numpy.float64))
     self.vExpNegLog = numpy.append(self.vExpNegLog,-1.0*numpy.ones(inc, dtype=numpy.float64))
@@ -147,14 +147,14 @@ class DPGMM:
     """Prevents the algorithm updating the component weighting for the first num samples in the database - potentially useful for incrimental learning if in a rush. If set to 0, the default, everything is updated."""
     self.skip = num
 
-  def solve(self, iterCap=None):
+  def solve(self, iterCap=None, iterLow=100):
     """Iterates updating the parameters until the model has converged. Note that the system is designed such that you can converge, add more samples, and converge again, i.e. incrimental learning. Alternativly you can converge, add more sticks, and then convegre again without issue, which makes finding the correct number of sticks computationally reasonable.. Returns the number of iterations required to acheive convergance. You can optionally provide a cap on the number of iterations it will perform."""
 
     # Deal with the z array being incomplete - enlarge/create as needed. Random initialisation is used...
     dm = self.getDM()
     if self.z==None or self.z.shape[0]<dm.shape[0]:
       newZ = numpy.empty((dm.shape[0],self.stickCap), dtype=numpy.float64)
-      
+
       if self.z==None: offset = 0
       else:
         offset = self.z.shape[0]
@@ -185,7 +185,7 @@ class DPGMM:
 
       sums = self.z.sum(axis=0)
       self.v[:,0] += sums
-      
+
       self.v[:,1] += self.z.shape[0]
       self.v[:,1] -= numpy.cumsum(sums)
 
@@ -206,7 +206,7 @@ class DPGMM:
 
       # Update the z values...
       prev[self.skip:,:] = self.z[self.skip:,:]
-      
+
       vExpNegLogCum = self.vExpNegLog.cumsum()
       base = self.vExpLog.copy()
       base[1:] += vExpNegLogCum[:-1]
@@ -222,8 +222,9 @@ class DPGMM:
 
       # Check for convergance...
       change = numpy.abs(prev[self.skip:,:]-self.z[self.skip:,:]).sum(axis=1).max()
-      if change<self.epsilon: break
+      if change<self.epsilon and iters > iterLow: break #add a lower limit to the number of iterations to overcome local minima.
       if iters==iterCap: break
+      #print iters, ' ', change
 
     # Return the number of iterations that were required to acheive convergance...
     return iters
@@ -242,19 +243,19 @@ class DPGMM:
 
 
   def sampleMixture(self):
-    """Once solve has been called and a distribution over models determined 
-    this allows you to draw a specific model. Returns a 2-tuple, where the 
-    first entry is an array of weights and the second entry a list of Gaussian 
-    distributions - they line up, to give a specific Gaussian mixture model. For 
-    density estimation the probability of a specific point is then the sum of each 
-    weight multiplied by the probability of it comming from the associated Gaussian. 
-    For clustering the probability of a specific point belonging to a cluster is 
-    the weight multiplied by the probability of it comming from a specific Gaussian, 
-    normalised for all clusters. Note that this includes an additional term to cover 
-    the infinite number of terms that follow, which is really an approximation, but 
-    tends to be such a small amount as to not matter. Be warned that if doing clustering 
-    a point could be assigned to this 'null cluster', indicating that the model thinks the 
-    point belongs to an unknown cluster (i.e. one that it doesn't have enough information, 
+    """Once solve has been called and a distribution over models determined
+    this allows you to draw a specific model. Returns a 2-tuple, where the
+    first entry is an array of weights and the second entry a list of Gaussian
+    distributions - they line up, to give a specific Gaussian mixture model. For
+    density estimation the probability of a specific point is then the sum of each
+    weight multiplied by the probability of it comming from the associated Gaussian.
+    For clustering the probability of a specific point belonging to a cluster is
+    the weight multiplied by the probability of it comming from a specific Gaussian,
+    normalised for all clusters. Note that this includes an additional term to cover
+    the infinite number of terms that follow, which is really an approximation, but
+    tends to be such a small amount as to not matter. Be warned that if doing clustering
+    a point could be assigned to this 'null cluster', indicating that the model thinks the
+    point belongs to an unknown cluster (i.e. one that it doesn't have enough information,
     or possibly sticks, to instanciate.)."""
     weight = numpy.empty(self.stickCap+1, dtype=numpy.float64)
     stick = 1.0
@@ -266,34 +267,34 @@ class DPGMM:
 
     gauss = map(lambda x: x.sample(), self.n)
     gauss.append(self.prior.sample())
-    
+
     return (weight,gauss)
 
   def intMixture(self):
-    """Returns the details needed to calculate the probability of a point given the model (density estimation), 
-    or its probability of belonging to each stick (clustering), but with the actual draw of a mixture model from 
-    the model integrated out. It is an apprximation, though not a bad one. Basically you get a 2-tuple - the first 
-    entry is an array of weights, the second a list of student-t distributions. The weights and distributions align, 
-    such that for density estimation the probability for a point is the sum over all entrys of the weight multiplied 
-    by the probability of the sample comming from the student-t distribution. The prob method of this class calculates 
-    the use of this for a sample directly. For clustering the probability of belonging to each cluster is calculated 
-    as the weight multiplied by the probability of comming from the associated student-t, noting that you will need 
-    to normalise. stickProb allows you to get this assesment directly. Do not edit the returned value; also, it will 
-    not persist if solve is called again. This must only be called after solve is called at least once. Note that an 
-    extra element is included to cover the remainder of the infinite number of elements - be warned that a sample could 
-    have the highest probability of belonging to this dummy element, indicating that it probably belongs to something 
+    """Returns the details needed to calculate the probability of a point given the model (density estimation),
+    or its probability of belonging to each stick (clustering), but with the actual draw of a mixture model from
+    the model integrated out. It is an apprximation, though not a bad one. Basically you get a 2-tuple - the first
+    entry is an array of weights, the second a list of student-t distributions. The weights and distributions align,
+    such that for density estimation the probability for a point is the sum over all entrys of the weight multiplied
+    by the probability of the sample comming from the student-t distribution. The prob method of this class calculates
+    the use of this for a sample directly. For clustering the probability of belonging to each cluster is calculated
+    as the weight multiplied by the probability of comming from the associated student-t, noting that you will need
+    to normalise. stickProb allows you to get this assesment directly. Do not edit the returned value; also, it will
+    not persist if solve is called again. This must only be called after solve is called at least once. Note that an
+    extra element is included to cover the remainder of the infinite number of elements - be warned that a sample could
+    have the highest probability of belonging to this dummy element, indicating that it probably belongs to something
     for which there is not enough data to infer a reasonable model."""
     weights = numpy.empty(self.stickCap+1, dtype=numpy.float64)
-    
+
     stick = 1.0
     for i in xrange(self.stickCap):
       ev = self.v[i,0] / self.v[i,:].sum()
       weights[i] = stick * ev
       stick *= 1.0 - ev
     weights[-1] = stick
-      
+
     return (weights, self.nT + [self.priorT])
-  
+
   def prob(self, x):
     """Given a sample this returns its probability, with the actual draw from the model integrated out. Must not be called until after solve has been called. This is the density estimate if using this model for density estimation. Will also accept a data matrix, in which case it will return a 1D array of probabilities aligning with the input data matrix."""
     x = numpy.asarray(x)
@@ -319,12 +320,12 @@ class DPGMM:
       bp = self.priorT.batchProb(x)
       ret += bp * stick
       return ret
-  
+
   def stickProb(self, x):
-    """Given a sample this returns its probability of belonging to each of the components, as a 1D array, 
-    including a dummy element at the end to cover the infinite number of sticks not being explicitly modeled. 
-    This is the probability of belonging to each cluster if using the model for clustering. Must not be called 
-    until after solve has been called. Will also accept a data matrix, in which case it will return a matrix 
+    """Given a sample this returns its probability of belonging to each of the components, as a 1D array,
+    including a dummy element at the end to cover the infinite number of sticks not being explicitly modeled.
+    This is the probability of belonging to each cluster if using the model for clustering. Must not be called
+    until after solve has been called. Will also accept a data matrix, in which case it will return a matrix
     with a row for each vector in the input data matrix."""
     x = numpy.asarray(x)
     if len(x.shape)==1:
@@ -401,7 +402,7 @@ class DPGMM:
     self.solve()
     best = self
     bestNLL = self.nllData()
-    
+
     for _ in xrange(runs):
       current = self
       lastScore = None
