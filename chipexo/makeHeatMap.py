@@ -26,15 +26,35 @@ cdict3 = {'blue':  ((0.0, 0.0, 0.0),
                (1.0,1.0,1.0))
     }
 
+tokens = sys.argv[1].split('.')
 blue_red = LinearSegmentedColormap("BlueRed", cdict3)
 
 data = np.loadtxt(sys.argv[1])
 
 upper = float(sys.argv[2])
 
+width = data.shape[1] / 2
+
+averages = np.average(data, axis=0)
+w = np.ones(10)
+
+faves = np.convolve(w/w.sum(), averages[:width], mode='valid')
+raves = np.convolve(w/w.sum(), averages[width:], mode='valid')
+#averages[width:] = averages[width:] * -1
+
+figure = plt.figure()
+#plt.plot(averages[:width])
+#plt.plot(averages[width:])
+plt.plot(faves)
+plt.plot(raves)
+tokens[-1] = 'averaged.png'
+plt.savefig('.'.join(tokens))
+
+plt.clf()
+#plt.show()
+
 
 data[data<0.00001] = None
-width = data.shape[1] / 2
 
 print width
 data[data>upper] = upper
@@ -54,7 +74,6 @@ plt.xticks(ticks, labels)
 plt.xlabel('Distance from motif (bp)')
 plt.title(sys.argv[1].split('/')[-1].split('.')[0])
 
-tokens = sys.argv[1].split('.')
 tokens[-1] = 'heatMap.png'
-#plt.savefig('.'.join(tokens))
-plt.show()
+plt.savefig('.'.join(tokens))
+#plt.show()

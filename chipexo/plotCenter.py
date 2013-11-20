@@ -1,4 +1,3 @@
-import os,sys
 import numpy as np
 import pylab as plt
 import argparse
@@ -23,12 +22,16 @@ def loadPos( filename, chromCol, startCol, endCol, strandCol, offset, coordForma
         if strand == '-':
             currPos = end - offset
         if chrom not in pos:
-            pos[ chrom ] = []
+            pos[ chrom ] = set()
         if lastChrom != chrom or lastPos != currPos or lastStrand != strand:
-            pos[ chrom ].append( currPos )
+            pos[ chrom ].add( (currPos,strand) )
             lastChrom = chrom
             lastPos = currPos
             lastStrand = strand
+
+    for chrom in pos:
+        pos[chrom] = list(pos[chrom])
+        pos[chrom].sort(key=lambda k:(k[0], k[1],))
 
     f.close()
     return pos
@@ -47,8 +50,8 @@ def plot( fvalues, rvalues, width, out ):
         plt.plot(x, f, '--', color='blue')
     for r in rvalues:
         plt.plot(x, r, '--', color='red')
-    #plt.savefig(out+".png", dpi=600)
-    plt.show()
+    plt.savefig(out+".png", dpi=600)
+    #plt.show()
 
 
 def main(args):
@@ -67,7 +70,7 @@ def main(args):
         if chrom in rwig:
             chromRwig = gs.expandWig( rwig[ chrom ], 0, 1, False)
         chromPos = poses[ chrom ]
-        for p in chromPos:
+        for p,strand in chromPos:
             keep = True
             tempFValues = np.zeros( 2 * args.width + 1 )
             tempRValues = np.zeros( 2 * args.width + 1 )
@@ -97,6 +100,10 @@ def main(args):
                     if tempRValues.sum() < args.thresh:
                         keep = False
             if keep:
+                if strand == '-':
+                    temp = tempFValues[::-1]
+                    tempFValues = tempRValues[::-1]
+                    tempRValues = temp
                 values.append(10**6*np.array(np.ma.concatenate([tempFValues, tempRValues])) / args.mappedCounts)
 
 

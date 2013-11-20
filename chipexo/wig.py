@@ -50,7 +50,7 @@ def density_nb( expanded, r, mean, strand ):
         temp = leftwin
         leftwin = rightwin
         rightwin = temp
-        
+
     out = np.zeros_like( expanded )
     for i in range( expanded.shape[0] ):
         count = expanded[i]
@@ -108,7 +108,7 @@ def readWigFile( filename ):
     Each chromosome is a sublist, and the first element is the chromsome name.
     '''
     f = open( filename )
-    lines = Queue() 
+    lines = Queue()
     count = 0
     temp = []
     currChrom = None
@@ -139,7 +139,7 @@ def processChrom( taskQ, outQ, processID, offset, smooth = True, strand = '+' ):
         print 'Process ', processID, ' sorting-------'
         temp.sort( key= lambda k:(k[0]))
         temp = np.array( temp )
-        
+
         if smooth:
             startp = temp[0, 0]
             forGaussian = expandWig( temp, offset, 1 )
@@ -186,6 +186,19 @@ def loadWig(filename, smooth = True, strand = '+'):
 
     print 'Done loading ', filename
     return wig
+
+def writeAsBedGraph(wig, filename):
+    '''
+    Write a wig input object as bedGraph format.
+    '''
+    out = open(filename, 'w')
+    chroms = wig.keys()
+    chroms.sort()
+    for chrom in chroms:
+        chromWig = wig[chrom]
+        for p in chromWig:
+            out.write('%s\t%d\t%d\t%f\n'%(chrom, p[0] - 1 , p[0], p[1]))
+    out.close()
 
 
 if __name__=='__main__':

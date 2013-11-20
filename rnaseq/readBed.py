@@ -28,23 +28,46 @@ csv.register_dialect('bed', delimiter = '\t',quoting = csv.QUOTE_NONE,skipinitia
 class BEDReader(csv.DictReader):
     """
     Read BED files into a DictReader.
-    See BEDReader.FIELDS for field names
+    Usage: BEDReader( filename, filetype ).
+    filename: The name of the file to read.
+    filetype: As there are currently multiple extensions
+              to the original Bed format, we included them.
+              The field can be: 'bed12', 'bed3','bed6', 'bedGraph',
+              'narrowPeak', 'broadPeak'.
+
+    Use BEDReader.fieldnames to see the field names.
 
     Example:
-        bed = BEDReader("file.bed")
+        bed = BEDReader("file.bed", "bed12")
         for line in bed:
             # print the chromStart
             print(line['chromStart'])
     """
-    FIELDS = ('chrom', 'chromStart', 'chromEnd',
+    FIELDS = ['chrom', 'chromStart', 'chromEnd',
               'name', 'score', 'strand',
               'thickStart', 'thickEnd',
               'itemRgb',
-              'blockCount', 'blockSizes', 'blockStarts')
+              'blockCount', 'blockSizes', 'blockStarts', 'value', 'signalValue', 'pValue', 'qValue', 'peak']
 
-    def __init__(self, filename):
+    def __init__(self, filename, ftype):
+        ftype = ftype.strip().lower()
+        if ftype == 'bed12':
+            fieldNames = self.FIELDS[:12]
+        elif ftype == 'bed3':
+            fieldNames = self.FIELDS[:3]
+        elif ftype == 'bed6':
+            fieldNames = self.FIELDS[:6]
+        elif ftype == 'bedgraph':
+            fieldNames = self.FIELDS[:3]+self.FIELDS[-5:-4]
+        elif ftype == 'narrowpeak':
+            fieldNames=self.FIELDS[:6]+self.FIELDS[-4:]
+        elif ftype == 'broadpeak':
+            fieldNames=self.FIELDS[:6]+self.FIELDS[-4:-1]
+
         csv.DictReader.__init__(self, CommentedFileReader(filename), dialect='bed',
-                                fieldnames=self.FIELDS)
+                fieldnames=fieldNames)
+
+
 
 
 class BEDWriter(csv.DictWriter):
