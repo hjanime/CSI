@@ -166,7 +166,14 @@ class Peak:
 
 
     def __str__(self):
-        return '%s\t%d\t%d'%(self.chrom, self.start, self.end)
+        return '\t'.join([str(i) for i in [self.chrom, self.start, self.end, self.name, self.score, self.strand, self.signalValue, self.pValue, self.qValue, self.summit, self.shift]])
+
+    def simpleStr(self):
+        if self.shift != None:
+            return '%s_%d_%d_%d'%(self.chrom, self.start, self.end, self.shift)
+        else:
+            return '%s_%d_%d'%(self.chrom, self.start, self.end)
+
 
 
 class StitchedPeaks:
@@ -183,6 +190,8 @@ class StitchedPeaks:
         self.stitchDist = stitchDist
         self.totalSignalInConst = None
         self.totalSignal = None
+        self.totalCtrlInConst = None
+        self.totalCtrl = None
 
     def getChrom(self):
         if len(self.peaks) <= 0:
@@ -199,16 +208,31 @@ class StitchedPeaks:
             return None
         return self.peaks[-1].end
 
+    def _calDataInConst(self, control=False):
+        total = 0
+        if not control:
+            for p in peaks:
+                total += p.data.sum()
+        else:
+            for p in peaks:
+                total += p.ctrl.sum()
+        return total
+
+        
+
     def getTotalSignalInConst(self):
         if self.totalSignalInConst != None:
             return self.totalSignalInConst
-        total = 0
-        for p in peaks:
-            total += p.data.sum()
-        self.totalSignalInConst = total
-        return total
+        self.totalSignalInConst = self._calDataInConst()
+        return self.totalSignalInConst
 
-    def calTotalSignal(self, fwig, rwig):
+    def getTotalCtrlInConst(self):
+        if self.totalCtrlInConst != None:
+            return self.totalCtrlInConst
+        self.totalCtrlInConst = self._calDataInConst(True)
+        return self.totalCtrlInConst
+
+    def calTotalSignal(self, fwig, rwig, control=False):
         import bisect
         def _getBoundIdx(iwig, chrom, tstart, tend):
             s = bisect.bisect_left(iwig[chrom][:,0], tstart)
@@ -223,8 +247,22 @@ class StitchedPeaks:
             end = self.getEnd()
             fs, fe = _getBoundIdx(fwig, chrom, start, end)
             rs, re = _getBoundIdx(rwig, chrom, start ,end)
-            self.total = fwig[chrom][fs:fe,1].sum() + rwig[chrom][rs:re,1].sum()
-        return self.total
+            total = fwig[chrom][fs:fe,1].sum() + rwig[chrom][rs:re,1].sum()
+        if control:
+            self.totalCtrl = total
+        else:
+            self.totalSignal = total
+        return total
+
+    def getTotalSignal(self, fwig, rwig):
+        if self.totalSignal != None:
+            return self.totalSignal
+        return self.calTotalSignal(fwig, rwig)
+
+    def getTotalCtrl(self, fwig, rwig):
+        if self.totalCtrl != None:
+            return self.totalCtrl
+        return self.calTotalSignal(fwig, rwig, True)
 
 
     def _sort(self):
