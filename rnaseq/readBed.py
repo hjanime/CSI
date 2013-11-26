@@ -25,7 +25,7 @@ class CommentedFileReader:
 
 csv.register_dialect('bed', delimiter = '\t',quoting = csv.QUOTE_NONE,skipinitialspace = True)
 
-class BEDReader(csv.DictReader):
+class BEDReader:
     """
     Read BED files into a DictReader.
     Usage: BEDReader( filename, filetype ).
@@ -64,8 +64,37 @@ class BEDReader(csv.DictReader):
         elif ftype == 'broadpeak':
             fieldNames=self.FIELDS[:6]+self.FIELDS[-4:-1]
 
-        csv.DictReader.__init__(self, CommentedFileReader(filename), dialect='bed',
-                fieldnames=fieldNames)
+        self.fieldnames = fieldNames
+        self.reader = csv.reader(CommentedFileReader(filename), dialect='bed')
+
+    def __iter__(self):
+        return self
+
+    def getFields(self):
+        return self.fieldnames
+
+    def next(self):
+        row = self.reader.next()
+
+
+        ret = []
+        for r in row:
+            if r.isdigit():
+                ret.append(int(r))
+            else:
+                tmp = r
+                try:
+                    tmp = float(r)
+                except ValueError, TypeError:
+                    tmp = r
+                ret.append(tmp)
+        return ret
+
+    def tell(self):
+        return self.reader.tell()
+
+    def seek(self, pos):
+        return self.reader.seek(pos)
 
 
 
