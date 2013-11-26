@@ -181,6 +181,13 @@ class StitchedPeaks:
         self.peaks += peaks
         self._sort()
         self.stitchDist = stitchDist
+        self.totalSignalInConst = None
+        self.totalSignal = None
+
+    def getChrom(self):
+        if len(self.peaks) <= 0:
+            return None
+        return self.peaks[0].chrom
 
     def getStart(self):
         if len(self.peaks) <= 0:
@@ -191,6 +198,33 @@ class StitchedPeaks:
         if len(self.peaks) <= 0:
             return None
         return self.peaks[-1].end
+
+    def getTotalSignalInConst(self):
+        if self.totalSignalInConst != None:
+            return self.totalSignalInConst
+        total = 0
+        for p in peaks:
+            total += p.data.sum()
+        self.totalSignalInConst = total
+        return total
+
+    def calTotalSignal(self, fwig, rwig):
+        import bisect
+        def _getBoundIdx(iwig, chrom, tstart, tend):
+            s = bisect.bisect_left(iwig[chrom][:,0], tstart)
+            e = bisect.bisect_right(iwig[chrom][:,0], tend)
+            return s,e
+            
+        if len(self.peaks) <= 0:
+            return None
+        if self.getChrom() in fwig and self.getChrom in rwig:
+            chrom = self.getChrom()
+            start = self.getStart()
+            end = self.getEnd()
+            fs, fe = _getBoundIdx(fwig, chrom, start, end)
+            rs, re = _getBoundIdx(rwig, chrom, start ,end)
+            self.total = fwig[chrom][fs:fe,1].sum() + rwig[chrom][rs:re,1].sum()
+        return self.total
 
 
     def _sort(self):
@@ -256,6 +290,8 @@ def loadNarrowPeaks(reader, minsize=0):
             peaks[r[0]] = [Peak(*r),]
         else:
             peaks[r[0]].append(Peak(*r))
+    for chrom in peaks:
+        peaks[chrom].sort(key=lambda k:(k.start, k.end,))
     return peaks
 
 def addWigToPeak(fw, rw, peaks, isControl=False):
@@ -340,11 +376,18 @@ def stitchPeaks(peaks, stitchDist):
     '''
     stitched = {}
     for chrom in peaks:
+        if len(peaks[chrom]) <= 0:
+            continue
         if chrom not in stitched:
             stitched[chrom] = []
-
-
-
+        lastEnd = peaks[chrom][0].end
+        startIdx = 0
+        for i in range(len(peaks[chrom])):
+            if peaks[chrom][i].start >= lastEnd + stitchDist:
+                stitched[chrom].append(StitchedPeaks(peaks[chrom][startIdx:i],stitchDist))
+                startIdx = i
+            lastEnd = peaks[chrom][i].end
+    return stitched
 
 
 
