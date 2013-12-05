@@ -56,7 +56,6 @@ class Peak:
         self.shift = None
         self.old_shift= None
         self.processed = False
-        self.size = self.end - self.start
         if not (isinstance(self.start, int) and isinstance(self.end, int)):
             raise ValueError("start and end should be integers.\n")
 
@@ -67,9 +66,9 @@ class Peak:
             None. The data field will be a 1-d array of 0s with size end-start.
         '''
         if not isControl and self.data == None:
-            self.data = [np.zeros(self.size, dtype='float32'), np.zeros(2*self.size-1, dtype='float32')]
+            self.data = np.zeros((2, self.end- self.start), dtype='float32')
         elif isControl and self.ctrl == None:
-            self.ctrl = np.zeros((2, self.size), dtype='float32')
+            self.ctrl = np.zeros((2, self.end- self.start), dtype='float32')
 
 
     def _addData(self, data, dstart, dend, v, strand=0):
@@ -83,9 +82,6 @@ class Peak:
         assert strand == 0 or strand == 1, "Strand is not correct"
         if self.start <= dstart < self.end or self.start < dend <= self.end:
             for i in range(max(dstart,self.start), min(self.end, dend)):
-                data[strand][i-self.start] += v
-        elif strand == 1 and self.start <= dstart < self.end + self.size - 1 or self.start < dend <= self.end + self.size - 1:
-            for i in range(max(dstart,self.start), min(self.end+self.size-1, dend)):
                 data[strand][i-self.start] += v
 
     def addData(self, dstart, dend, v ,strand = 0):
@@ -157,8 +153,8 @@ class Peak:
         w = np.blackman(11)
         data1 = self.data[0]
         data2 = self.data[1]
-        mean1 = data1[:self.size].mean()
-        mean2 = data2[:self.size].mean()
+        mean1 = data1.mean()
+        mean2 = data2.mean()
         data1 = data1 / mean1
         data2 = data2 / mean2
         data1 = np.convolve(w, self.data[0],mode='same')
@@ -167,9 +163,8 @@ class Peak:
         #data2 = data2*np.sqrt(data2)
         maxI = 0
         maxScore = 0
-        cc = np.correlate(data2, data1[:self.size], 'valid')
-        #self.shift= np.argmax(cc[data1.shape[0]-1:])
-        self.shift= np.argmax(cc)
+        cc = np.correlate(data2, data1, 'full')
+        self.shift= np.argmax(cc[data1.shape[0]-1:])
 
         self.processed = True
         self.cc = cc
@@ -177,8 +172,8 @@ class Peak:
 
     def getOldShift(self):
         w = np.blackman(11)
-        data1 = self.data[0][:self.size]
-        data2 = self.data[1][:self.size]
+        data1 = self.data[0]
+        data2 = self.data[1]
         mean1 = data1.mean()
         mean2 = data2.mean()
         data1 = data1 / mean1
@@ -284,7 +279,7 @@ class StitchedPeaks:
         if not control:
             for p in self.peaks:
                 if p.data != None:
-                    total += p.data[0].sum() + p.data[1][:p.size].sum()
+                    total += p.data.sum()
         else:
             for p in self.peaks:
                 if p.ctrl != None:
@@ -447,11 +442,9 @@ def addWigToPeak(fw, rw, peaks, isControl=False):
     rwig = wig.loadWig(rw, False, '-')
     total_f = 0
     total_r = 0
-    chroms = []
     for chrom in peaks:
         if not (chrom in fwig and chrom in rwig):
             continue
-        chroms.append(chrom)
         chromPeaks = peaks[chrom]
         chromFwig = fwig[chrom]
         chromRwig = rwig[chrom]
@@ -476,24 +469,15 @@ def addWigToPeak(fw, rw, peaks, isControl=False):
                         cp.addData(cwig[i1,0]-1, cwig[i1,0], cwig[i1,1], strand)
                     i1 += 1
 
-                    if strand == 1 and not isControl:
-                        i2 = i1
-                        cend = 2*(cp.end - cp.start) - 1
-                        if pi < len(chromPeaks)-1 and chromPeaks[pi+1].start < cend:
-                            cend = chromPeaks[pi+1].start
-                        while i2 < cwig.shape[0] and cwig[i2,0] - 1 < cend:
-                            cp.addData(cwig[i2,0]-1, cwig[i2,0], cwig[i2,1], strand)
-                            i2 += 1
-
                 return i1
 
             fi = _addWig(p, chromFwig, fi, 0)
             ri = _addWig(p, chromRwig, ri, 1)
 
             pi += 1
-    return fwig, rwig, chroms
+    return fwig, rwig
 
-def filterPeaks(peaks, num_poses, rpm, ratio, chroms):
+def filterPeaks(peaks, num_poses, rpm, ratio):
     '''
     Parameters:
         peaks: all the peaks read in.
@@ -505,14 +489,12 @@ def filterPeaks(peaks, num_poses, rpm, ratio, chroms):
     '''
     filtered = {}
     for chrom in peaks:
-        if chrom not in chroms:
-            continue
         if chrom not in filtered:
             filtered[chrom] = []
         for p in peaks[chrom]:
-            sum1 = p.data[0].sum()
-            sum2 = p.data[1][:p.size].sum()
-            if (p.data[0] > 0).sum() >= num_poses and (p.data[1][:p.size] > 0).sum() >= num_poses and sum1+sum2 >= rpm:
+            if (p.data[0] > 0).sum() >= num_poses and (p.data[1] > 0).sum() >= num_poses and p.data.sum() >= rpm:
+                sum1 = p.data[0].sum()
+                sum2 = p.data[1].sum()
                 if max(sum1, sum2) * 1.0 / min(sum1, sum2) < ratio:
                     filtered[chrom].append(p)
 
@@ -729,12 +711,12 @@ def run(options):
     #peaks = loadNarrowPeaks(BEDReader("RNAP-II_8WG16_SNU16_XO111_sh10_t40_peaks.narrowPeak",'narrowPeak'))
     peaks = loadNarrowPeaks(BEDReader(options.peakfile,'narrowPeak'))
     #fwig, rwig = addWigToPeak("/home/caofan/Downloads/MJF11_hg19/1_Bam/test_apex/RNAP-II_8WG16_SNU16_XO111_Forward.wig", "/home/caofan/Downloads/MJF11_hg19/1_Bam/test_apex/RNAP-II_8WG16_SNU16_XO111_Reverse.wig",peaks)
-    fwig, rwig, chroms= addWigToPeak(options.fwig, options.rwig, peaks)
+    fwig, rwig = addWigToPeak(options.fwig, options.rwig, peaks)
     #cfwig, crwig = addWigToPeak("/home/caofan/Downloads/MJF11_hg19/1_Bam/test_apex/SNU16_merged_Forward.wig", "/home/caofan/Downloads/MJF11_hg19/1_Bam/test_apex/SNU16_merged_Reverse.wig",peaks, True)
     cfwig = None
     crwig = None
     if options.cfwig and options.crwig:
-        cfwig, crwig, chroms_c = addWigToPeak(options.cfwig, options.crwig, peaks, True)
+        cfwig, crwig = addWigToPeak(options.cfwig, options.crwig, peaks, True)
 
     total = getTotal(fwig) + getTotal(rwig)
     ctotal = getTotal(cfwig) + getTotal(crwig)
@@ -742,12 +724,12 @@ def run(options):
         options.rpm = r
         rpm = total*options.rpm/1000000
         print total, ' ', rpm, ' ',ctotal
-        filtered = filterPeaks(peaks, options.nposes, rpm, options.ratio, chroms)
+        filtered = filterPeaks(peaks, options.nposes, rpm, options.ratio)
         stitched = stitchPeaks(filtered, 12500)
         for chrom in stitched:
             for s in stitched[chrom]:
-                s.getTotalCtrl(cfwig, crwig)
-                s.getTotalSignal(fwig, rwig)
+                #print s.getTotalCtrl(cfwig, crwig)
+                #print s.getTotalSignal(fwig, rwig)
                 s.getTotalSignalInConst()
                 s.getTotalCtrlInConst()
         plotDistHist(filtered, options)

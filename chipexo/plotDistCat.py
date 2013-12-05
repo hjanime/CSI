@@ -57,7 +57,7 @@ def plotFigure(filename,data,cates,colors,xlabel,typefig,nbins=200,saveFig=None)
     total = []
     for d in data:
         total.append(len(d))
-        tempy,binEdges = np.histogram(d,bins=range(201),normed=1)
+        tempy,binEdges = np.histogram(d,bins=range(0,201,5),normed=1)
         y.append(tempy)
 
     #print y
