@@ -35,7 +35,7 @@ def getTitle(filename):
 
 def saveOrPrint(fig, filename, typefig, saveFig ):
     if saveFig:
-        fig.savefig(os.path.join(saveFig,filename.split('.')[0]+"."+typefig+".png"),dpi=600)
+        fig.savefig(os.path.join(saveFig,'.'.join(filename.split('.')[:-1])+"."+typefig+".png"),dpi=600)
     else:
         fig.show()
     fig.clf()

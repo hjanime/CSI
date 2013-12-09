@@ -5,6 +5,7 @@ import bisect
 
 sys.path.insert(0,'/home/caofan/Documents/scripts/rnaseq')
 from readBed import BEDReader
+from getSummit import loadRejectRegion, isReject
 from sortedcollection import SortedCollection
 
 def normalize(inA, outA ):
@@ -57,8 +58,14 @@ class Peak:
         self.old_shift= None
         self.processed = False
         self.size = self.end - self.start
+        self.stitchedId = 'NA'
         if not (isinstance(self.start, int) and isinstance(self.end, int)):
             raise ValueError("start and end should be integers.\n")
+
+
+
+    def setStitchID(self, idx):
+        self.stitchedId = idx
 
     def prepareData(self, isControl):
         '''
@@ -170,6 +177,8 @@ class Peak:
         cc = np.correlate(data2, data1[:self.size], 'valid')
         #self.shift= np.argmax(cc[data1.shape[0]-1:])
         self.shift= np.argmax(cc)
+        individual = data1[:self.size]*data2[self.shift:self.shift+self.size]
+        self.summit = self.shift / 2 + np.argmax(individual)
 
         self.processed = True
         self.cc = cc
@@ -196,7 +205,7 @@ class Peak:
 
 
     def __str__(self):
-        return '\t'.join([str(i) for i in [self.chrom, self.start, self.end, self.name, self.score, self.strand, self.signalValue, self.pValue, self.qValue, self.shift]])
+        return '\t'.join([str(i) for i in [self.chrom, self.start, self.end, self.name, self.score, self.strand, self.signalValue, self.pValue, self.qValue, self.summit, self.shift, self.stitchedId]])
 
     def simpleStr(self):
         a = '%s_%d_%d_%f'%(self.chrom, self.start, self.end, self.signalValue)
@@ -211,33 +220,34 @@ class Peak:
         if self.end-self.start < 51:
             return
         x = np.arange(self.start, self.end)
+        xr = np.arange(self.start, self.end - self.start + self.end - 1)
         pl.figure()
-        pl.subplot(321)
+        pl.subplot(221)
         pl.plot(x, self.data[0])
-        pl.plot(x, self.data[1], color='r')
-        pl.subplot(323)
+        pl.plot(xr, self.data[1], color='r')
+        pl.subplot(223)
         pl.plot(x+self.shift/2, self.data[0])
-        pl.plot(x-(self.shift - self.shift/2), self.data[1], color='r')
-        pl.subplot(325)
-        pl.plot(x+self.old_shift/2, self.data[0])
-        pl.plot(x-(self.old_shift - self.old_shift/2), self.data[1], color='r')
+        pl.plot(xr-(self.shift - self.shift/2), self.data[1], color='r')
+        #pl.subplot(325)
+        #pl.plot(x+self.old_shift/2, self.data[0])
+        #pl.plot(xr-(self.old_shift - self.old_shift/2), self.data[1], color='r')
 
         w = np.blackman(51)
         data1 = np.convolve(w, self.data[0],mode='same')
         data2 = np.convolve(w, self.data[1],mode='same')
-        pl.subplot(322)
+        pl.subplot(222)
         pl.plot(x, data1)
-        pl.plot(x, data2, color='r')
-        pl.subplot(324)
+        pl.plot(xr, data2, color='r')
+        pl.subplot(224)
         pl.plot(x+self.shift/2, data1)
-        pl.plot(x-(self.shift - self.shift/2), data2, color='r')
-        pl.subplot(326)
-        pl.plot(x+self.old_shift/2, data1)
-        pl.plot(x-(self.old_shift - self.old_shift/2), data2, color='r')
+        pl.plot(xr-(self.shift - self.shift/2), data2, color='r')
+        #pl.subplot(326)
+        #pl.plot(x+self.old_shift/2, data1)
+        #pl.plot(xr-(self.old_shift - self.old_shift/2), data2, color='r')
 
 
         if savefig != None:
-            pl.savefig(savefig+"/"+self.simpleStr()+'_'+str(self.old_shift)+'.png',dpi=400)
+            pl.savefig(savefig+"/"+self.simpleStr()+'_'+str(self.old_shift)+'.png')
             pl.cla()
             pl.clf()
             pl.close()
@@ -254,9 +264,12 @@ class StitchedPeaks:
         1. peaks: a list of the peaks of the Peak class.
         2. stichDist: the distance within which peaks are stitched.
     '''
-    def __init__(self, peaks, stitchDist):
+    def __init__(self, index, peaks, stitchDist):
+        self.index = index
         self.peaks = []
         self.peaks += peaks
+        for p in self.peaks:
+            p.setStitchID(self.index)
         self._sort()
         self.stitchDist = stitchDist
         self.totalSignalInConst = -1
@@ -362,6 +375,7 @@ class StitchedPeaks:
         a.append(self.getStart())
         a.append(self.getEnd())
         a.append(self.peaks[0].name+'_stitched')
+        a.append(self.index)
         a.append(len(self.peaks))
         a.append(self.totalSignal)
         a.append(self.totalCtrl)
@@ -376,6 +390,7 @@ def getStitchHeader():
          'Start',
          'End',
          'Name',
+         'ID',
          'Num_peaks',
          'Total_signal',
          'Total_ctrl',
@@ -476,14 +491,14 @@ def addWigToPeak(fw, rw, peaks, isControl=False):
                         cp.addData(cwig[i1,0]-1, cwig[i1,0], cwig[i1,1], strand)
                     i1 += 1
 
-                    if strand == 1 and not isControl:
-                        i2 = i1
-                        cend = 2*(cp.end - cp.start) - 1
-                        if pi < len(chromPeaks)-1 and chromPeaks[pi+1].start < cend:
-                            cend = chromPeaks[pi+1].start
-                        while i2 < cwig.shape[0] and cwig[i2,0] - 1 < cend:
-                            cp.addData(cwig[i2,0]-1, cwig[i2,0], cwig[i2,1], strand)
-                            i2 += 1
+                if strand == 1 and not isControl:
+                    i2 = i1
+                    cend = cp.end - cp.start + cp.end - 1
+                    if pi < len(chromPeaks)-1 and chromPeaks[pi+1].start < cend:
+                        cend = chromPeaks[pi+1].start
+                    while i2 < cwig.shape[0] and cwig[i2,0] - 1 < cend:
+                        cp.addData(cwig[i2,0]-1, cwig[i2,0], cwig[i2,1], strand)
+                        i2 += 1
 
                 return i1
 
@@ -493,7 +508,7 @@ def addWigToPeak(fw, rw, peaks, isControl=False):
             pi += 1
     return fwig, rwig, chroms
 
-def filterPeaks(peaks, num_poses, rpm, ratio, chroms):
+def filterPeaks(peaks, num_poses, rpm, ratio, chroms, rejected = None):
     '''
     Parameters:
         peaks: all the peaks read in.
@@ -512,7 +527,7 @@ def filterPeaks(peaks, num_poses, rpm, ratio, chroms):
         for p in peaks[chrom]:
             sum1 = p.data[0].sum()
             sum2 = p.data[1][:p.size].sum()
-            if (p.data[0] > 0).sum() >= num_poses and (p.data[1][:p.size] > 0).sum() >= num_poses and sum1+sum2 >= rpm:
+            if (p.data[0] > 0).sum() >= num_poses and (p.data[1][:p.size] > 0).sum() >= num_poses and sum1+sum2 >= rpm and not isReject(rejected, p.chrom, p.start + 1, p.end):
                 if max(sum1, sum2) * 1.0 / min(sum1, sum2) < ratio:
                     filtered[chrom].append(p)
 
@@ -527,6 +542,7 @@ def stitchPeaks(peaks, stitchDist):
             {chrom1: [stitch1, stitched2, ...], chrom2:[]}
     '''
     stitched = {}
+    index = 0 #track the id of the stitched peaks.
     for chrom in peaks:
         if len(peaks[chrom]) <= 0:
             continue
@@ -536,9 +552,11 @@ def stitchPeaks(peaks, stitchDist):
         startIdx = 0
         for i in range(len(peaks[chrom])):
             if peaks[chrom][i].start >= lastEnd + stitchDist:
-                stitched[chrom].append(StitchedPeaks(peaks[chrom][startIdx:i],stitchDist))
+                stitched[chrom].append(StitchedPeaks(index, peaks[chrom][startIdx:i],stitchDist))
+                index += 1
                 startIdx = i
             lastEnd = peaks[chrom][i].end
+        stitched[chrom].append(StitchedPeaks(index, peaks[chrom][startIdx:],stitchDist))
     return stitched
 
 
@@ -707,11 +725,12 @@ def plotDistHist(filtered, options):
             shifts.append(p.shift)
             oldShifts.append(p.old_shift)
 
-            #if options.rpm == 20:
-            #    dirname = "%s/%d"%(getOutput(options),p.shift/10)
-            #    if not os.path.exists(dirname):
-            #        os.system("mkdir -p " + dirname)
-            #    p.plot(dirname)
+            if options.savefig >= 0:
+                if options.rpm == options.savefig:
+                    dirname = "%s/%d"%(getOutput(options),p.shift/10)
+                    if not os.path.exists(dirname):
+                        os.system("mkdir -p " + dirname)
+                    p.plot(dirname)
 
     import pylab as pl
     pl.figure()
@@ -742,7 +761,10 @@ def run(options):
         options.rpm = r
         rpm = total*options.rpm/1000000
         print total, ' ', rpm, ' ',ctotal
-        filtered = filterPeaks(peaks, options.nposes, rpm, options.ratio, chroms)
+        rejected = {}
+        if options.rejectRegion is not None:
+            rejected = loadRejectRegion(options.rejectRegion)
+        filtered = filterPeaks(peaks, options.nposes, rpm, options.ratio, chroms, rejected)
         stitched = stitchPeaks(filtered, 12500)
         for chrom in stitched:
             for s in stitched[chrom]:
@@ -771,6 +793,8 @@ def getArgs():
     parser.add_argument('-m','--rpm', type=float, default=0, help="The minimum number of reads per million mapped reads a peak should have. Default: 0.")
     parser.add_argument('-r', '--ratio', type=float, default=sys.maxint,help="The maximum ratio between the forward and reverse strand reads. Default: %d"%(sys.maxint))
     parser.add_argument('-o', '--output', default="New", help="The prefix for output. If not specified, it will use 'New'.")
+    parser.add_argument('-b', '--rejectRegion', help = "The blacklisted regions within which a peak should be rejected.")
+    parser.add_argument('--savefig', type=int, default=-1, help="Whether to save the shift plots.")
 
     args = parser.parse_args()
     return args

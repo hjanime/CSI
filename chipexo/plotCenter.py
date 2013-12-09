@@ -53,10 +53,18 @@ def plot( fvalues, rvalues, width, out ):
     plt.savefig(out+".png", dpi=600)
     #plt.show()
 
+def getMappedCount(fwig, rwig):
+    mappedCount = 0
+    for chrom in fwig:
+        mappedCount += fwig[chrom][:,1].sum()
+    for chrom in rwig:
+        mappedCount += rwig[chrom][:,1].sum()
+    return mappedCount
 
 def main(args):
     fwig = gs.loadWig( args.forwardWig, smooth=False )
     rwig = gs.loadWig( args.reverseWig, smooth=False )
+    mappedCount = getMappedCount(fwig, rwig)
     poses = loadPos( args.positionFile, args.chromCol, args.startCol, args.endCol, args.strandCol, args.offset, args.format )
     values = []
     #print "\n"
@@ -104,7 +112,7 @@ def main(args):
                     temp = tempFValues[::-1]
                     tempFValues = tempRValues[::-1]
                     tempRValues = temp
-                values.append(10**6*np.array(np.ma.concatenate([tempFValues, tempRValues])) / args.mappedCounts)
+                values.append(10**6*np.array(np.ma.concatenate([tempFValues, tempRValues])) / mappedCount)
 
 
     values.sort(key=lambda k:(sum(k),))
@@ -124,7 +132,7 @@ if __name__=='__main__':
     parser.add_argument("startCol", type=int, help="The column that contains the start positions. The column's index start from 0.")
     parser.add_argument("endCol", type=int, help="The column that contains the end positions. The column's index start from 0.")
     parser.add_argument("strandCol", type=int, help="The column that contains the strand information. The column's index start from 0.")
-    parser.add_argument("mappedCounts", type=int, help="The count of mapped reads for calculation of rpm.")
+    #parser.add_argument("mappedCounts", type=int, help="The count of mapped reads for calculation of rpm.")
     parser.add_argument('--out', default="", help="The prefix for the output.")
     parser.add_argument('--width', type=int, default=100, help="How much on each side of the positions to plot. Default: 100.")
     parser.add_argument('--offset', type=int, default=0, help="The offset from the start position. Default: 0.")

@@ -89,7 +89,7 @@ def printResult( result, motifs, intervals, outPrefix = None, fastaCount = None,
     if outPrefix:
         out = open( outPrefix + '.detail.tsv','w')
         outS = open( outPrefix + '.tsv','w')
-    
+
     def writeToFile( out, useSum = False ):
         out.write('motifs')
         if translate:
@@ -120,11 +120,11 @@ def printResult( result, motifs, intervals, outPrefix = None, fastaCount = None,
                     out.write('\t%d'%tempTotal)
             out.write('\n')
         if fastaCount:
-            out.write('Number_of_seqs\t')
+            out.write('Number_of_seqs')
             for v in fastaCount:
                 out.write('\t%d'%v)
             out.write('\n')
-    
+
     writeToFile( out )
     if outPrefix:
         writeToFile( outS, True)
@@ -221,7 +221,7 @@ def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefi
     count_all = 0
     count_all_by_dist = []
     count_exist_by_dist = []
-    #the following are used to store the indexes of the rows in 
+    #the following are used to store the indexes of the rows in
     # the complete set
     matrix_by_dist = []
     matrix_exist_by_dist = []

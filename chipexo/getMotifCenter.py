@@ -7,19 +7,28 @@ def main(args):
         tokens = filename.split('.')
         tokens[-1] = str(args.extend) + "_center.bed"
         out = open('.'.join(tokens),'w')
+        written = {}
         for r in f:
             if r.startswith('#'):
                 continue
             tokens = r.strip().split('\t')
-            chrom, start, end = tokens[0].split('_')
+            chrom = tokens[0]
+            start = 0
+            end = 0
+            if len(tokens[0].split('_')) > 1:
+                chrom, start, end = tokens[0].split('_')
+            if chrom not in written:
+                written[chrom] = set()
             start = int(start)
             end = int(end)
             currPos = ( int( tokens[3] ) + int( tokens[4] ) ) / 2
             center = start + currPos - 1
-            cstart = center - args.extend
-            cend = center + args.extend
-            out.write('\t'.join([chrom, str(cstart), str(cend),'.']))
-            out.write('\n')
+            if center not in written[chrom]:
+                written[chrom].add(center)
+                cstart = center - args.extend
+                cend = center + args.extend
+                out.write('\t'.join([chrom, str(cstart), str(cend),'.']))
+                out.write('\n')
         out.close()
 
 

@@ -11,12 +11,13 @@ def getArgs():
     parser.add_argument('--format', choices=['BED','GFF'], default='GFF', help="The format of the annotation file. It can be either BED or GFF.")
     parser.add_argument('--header', action='store_true', default=False, help="Whether the first line should be ignored.")
     parser.add_argument('--onebased', default=False, action='store_true', help="Whether the fasta header coordinates are 1-based. Default is the same format as BED.")
+    parser.add_argument('--size', action='store_true', default=False, help="Whether to add the size instead of the shift distance.")
 
 
     args = parser.parse_args()
     return args
 
-def getAnnotation( annFile, distCol, hasHeader, fastaIsOneBased, annFormat ):
+def getAnnotation( annFile, distCol, hasHeader, fastaIsOneBased, annFormat, size=False ):
     f = open( annFile )
     if hasHeader:
         f.readline()
@@ -42,15 +43,29 @@ def getAnnotation( annFile, distCol, hasHeader, fastaIsOneBased, annFormat ):
             if fastaIsOneBased:
                 start += 1
         seqKey = '%s_%d_%d'%(chrom, start, end)
-        lookupDict[ seqKey ] = tokens[distCol]
+        addStr = 'dist='
+        dist = tokens[distCol]
+        if size:
+            addStr = 'size='
+            dist = end-start
+            if fastaIsOneBased:
+                dist += 1
+        if tokens[distCol].isdigit():
+            lookupDict[ seqKey ] = addStr + str(dist)
+        else:
+            lookupDict[ seqKey ] = str(dist)
+
     return lookupDict
 
 def main( args ):
     import re
-    ann = getAnnotation( args.annotation, args.distCol, args.header, args.onebased, args.format)
+    ann = getAnnotation( args.annotation, args.distCol, args.header, args.onebased, args.format, args.size)
     f = open(args.fasta)
     ftokens = args.fasta.split('.')
-    ftokens[-1] = 'modified.fa'
+    if args.size:
+        ftokens[-1] = 'modified_size.fa'
+    else:
+        ftokens[-1] = 'modified_dist.fa'
     out = open( '.'.join( ftokens ), 'w' )
     for r in f:
         if r.startswith('>'):

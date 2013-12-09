@@ -48,10 +48,28 @@ figure = plt.figure()
 plt.plot(faves)
 plt.plot(raves)
 tokens[-1] = 'averaged.png'
-plt.savefig('.'.join(tokens))
+plt.savefig('.'.join(tokens), dpi=600)
 
 plt.clf()
-#plt.show()
+
+#Plot the medians
+medians = np.zeros(data.shape[1])
+w = np.ones(10)
+for i in range(data.shape[1]):
+    medians[i] = np.median(data[:,i][data[:,i]>0])
+
+#fmedians = np.convolve(w/w.sum(), medians[:width], mode='valid')
+#rmedians = np.convolve(w/w.sum(), medians[width:], mode='valid')
+fmedians = medians[:width]
+rmedians = medians[width:]
+
+figure = plt.figure()
+plt.plot(fmedians)
+plt.plot(rmedians)
+tokens[-1] = 'median.png'
+plt.savefig('.'.join(tokens), dpi=600)
+
+plt.clf()
 
 
 data[data<0.00001] = None
@@ -75,5 +93,5 @@ plt.xlabel('Distance from motif (bp)')
 plt.title(sys.argv[1].split('/')[-1].split('.')[0])
 
 tokens[-1] = 'heatMap.png'
-plt.savefig('.'.join(tokens))
+plt.savefig('.'.join(tokens), dpi=600)
 #plt.show()
