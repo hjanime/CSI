@@ -35,10 +35,14 @@ def getTitle(filename):
 
 def saveOrPrint(fig, filename, typefig, saveFig ):
     if saveFig:
-        fig.savefig(os.path.join(saveFig,'.'.join(filename.split('.')[:-1])+"."+typefig+".png"),dpi=600)
+        print saveFig
+        end = len(filename.split('.'))
+        if end > 1:
+            end = -1
+        fig.savefig(os.path.join(saveFig,'.'.join(filename.split('.')[:end])+"."+typefig+".png"),dpi=1000)
+        fig.clf()
     else:
         fig.show()
-    fig.clf()
 
 
 def getHistBinCenters( data, nbins, dataRange = None, normed=False):
@@ -101,7 +105,8 @@ def plotBox(filename, data, intervals, scoretype, saveFig = None):
     fig_sub.set_ylim([0,total/totalCount + 30])
     saveOrPrint(fig, filename, scoretype, saveFig)
     #fig.close()
-    pl.close()
+    #pl.close()
+    pl.clf()
 
 def getIntervalIdx( intervals, v ):
     idx = None

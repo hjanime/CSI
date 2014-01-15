@@ -112,35 +112,52 @@ def readWigFile( filename ):
     count = 0
     temp = []
     currChrom = None
+    lastChrom = None
+    lastSpan = -1
+    currSpan = 1
     for r in f:
         if r.startswith('variable'):
-            if len( temp ) > 0 and currChrom != None:
-                lines.put( (currChrom, temp) )
+            lastChrom = currChrom
+            lastSpan = currSpan
+
+            tokens = r.strip().split()
+            currChrom = tokens[1].split('=')[1]
+            currSpan = 1
+            if len(tokens) > 2 and tokens[2].startswith("span"):
+                currSpan = int(tokens[2].split('=')[1])
+
+            if currChrom == lastChrom and currSpan == lastSpan:
+                continue
+            if len( temp ) > 0 and lastChrom != None :
+                lines.put( (lastChrom, temp, lastSpan) )
                 count += 1
             temp = []
-            currChrom = r.strip().split('=')[1]
         elif r.startswith('track'):
             continue
         else:
             temp.append( r.strip() )
     if len(temp) > 0:
-        lines.put( (currChrom, temp) )
+        lines.put( (currChrom, temp, currSpan) )
         count += 1
     f.close()
     return lines, count
 
 def processChrom( taskQ, outQ, processID, offset, smooth = True, strand = '+' ):
-    for chrom,chromLines in iter(taskQ.get, "STOP"):
-        print 'Process ', processID, ' is processing ', chrom
+    for chrom,chromLines,span in iter(taskQ.get, "STOP"):
+        print 'Process ', processID, ' is processing ', chrom, ' span is ', span
         temp = [ ]
         for line in chromLines:
             tokens = line.strip().split()
-            temp.append([ int(tokens[0]), float( tokens[1] ), 0])
+            #if float(tokens[1]) < 3:
+            #    continue
+            for i in range(span):
+                temp.append([ int(tokens[0]) + i, float( tokens[1] ), 0])
         print 'Process ', processID, ' sorting-------'
         temp.sort( key= lambda k:(k[0]))
         temp = np.array( temp )
 
         if smooth:
+            print "Process ", processID, " is smoothing."
             startp = temp[0, 0]
             forGaussian = expandWig( temp, offset, 1 )
             for i in range( temp.shape[0] ):
@@ -177,8 +194,11 @@ def loadWig(filename, smooth = True, strand = '+'):
 
     for i in range( count ):
         temp = outQ.get()
-        print 'storing ', temp[0]
-        wig[ temp[0] ] = temp[1]
+        print 'storing ', temp[0], ' ', type(temp[0]), ' ', temp[1].shape
+        if temp[0] in wig:
+            wig[temp[0]] = np.concatenate((wig[temp[0]], temp[1]), axis=0)
+        else:
+            wig[ temp[0] ] = temp[1]
     for i in range( NUM_PROCESSES ):
         lines.put( "STOP" )
     for i in range( NUM_PROCESSES ):

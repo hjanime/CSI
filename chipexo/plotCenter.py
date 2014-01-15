@@ -92,8 +92,6 @@ def main(args):
                 #print max(0, start) , ' ', min( chromFwig.shape[0], end + 1 )
                 if end >= 0 and start < chromFwig.shape[0]:
                     tempFValues[abs(min(0,start)):min( tempFValues.shape[0], tempFValues.shape[0] + chromFwig.shape[0] - end -1) ] = chromFwig[ max(0, start) : min( chromFwig.shape[0], end + 1 ) ]
-                    if tempFValues.sum() < args.thresh:
-                        keep = False
 
             if chrom in rwig:
                 #print chromRwig.shape
@@ -105,8 +103,9 @@ def main(args):
                 #print max(0, start) , ' ', min( chromRwig.shape[0], end + 1 )
                 if end >= 0 and start < chromRwig.shape[0]:
                     tempRValues[abs(min(0,start)):min( tempRValues.shape[0], tempRValues.shape[0] + chromRwig.shape[0] - end -1 ) ] = chromRwig[ max(0, start) : min( chromRwig.shape[0], end + 1 ) ]
-                    if tempRValues.sum() < args.thresh:
-                        keep = False
+            thresh = mappedCount * args.thresh / 10**6
+            if tempRValues.sum() < thresh or tempFValues.sum() < thresh:
+                keep = False
             if keep:
                 if strand == '-':
                     temp = tempFValues[::-1]

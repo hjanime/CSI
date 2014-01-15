@@ -27,14 +27,24 @@ def loadPeaks( filename ):
                 score = float( tokens[4] )
             if len( tokens ) > 5:
                 strand = tokens[5]
+            pvalue = -1
+            qvalue = -1
+            signal = -1
+            peak = -1
+            if filename.lower().endswith("narrowpeak"):
+                signal = float(tokens[6])
+                pvalue = float(tokens[7])
+                qvalue = float(tokens[8])
+                peak = int(tokens[9])
+
             if strand == '-':
                 if chrom not in rpeaks:
                     rpeaks[ chrom ] = []
-                rpeaks[chrom].append( [tokens[0], start, end, name, score, strand] )
+                rpeaks[chrom].append( [tokens[0], start, end, name, score, strand, signal, pvalue, qvalue, peak] )
             else:
                 if chrom not in fpeaks:
                     fpeaks[ chrom ] = []
-                fpeaks[chrom].append( [tokens[0], start, end, name, score, strand] )
+                fpeaks[chrom].append( [tokens[0], start, end, name, score, strand, signal, pvalue, qvalue, peak] )
     f.close()
 
     for chrom in fpeaks:
@@ -51,7 +61,7 @@ def getScore( fp, rp, fstart, rstart ):
     Returns the score and the shift of the two peaks
     '''
     fend = fstart + len( fp )
-    rend = fstart + len( rp )
+    rend = rstart + len( rp )
     fmean = sum( fp ) / len( fp )
     rmean = sum( rp ) / len( rp )
     newfp = np.array( [ ( t / fmean) ** 2 for t in fp ], dtype="float32")
@@ -62,26 +72,27 @@ def getScore( fp, rp, fstart, rstart ):
     maxRpos = 0
     maxheight = 0
     #Gradually move forward towards the 3' end
-    while fend + i < rend:
+    while fstart + i < rend:
         overlap = 0
         tempStart = max( fstart + i, rstart )
         tempEnd = min( fend + i, rend )
         tempRpos = 0
         tempHeight = 0
-        #for j in range( tempStart, tempEnd + 1 ):
-        #    temp =  newfp[ j - ( fstart + i ) ] * newrp[ j - rstart ]  
-        #    if temp >  tempHeight:
-        #        tempHeight = temp
-        #        tempRpos = j
-        #    overlap += temp
-        coeff = scs.pearsonr( fp, rp[i:i+len(fp)] )
+        for j in range( tempStart, tempEnd ):
+            temp =  newfp[ j - ( fstart + i ) ] * newrp[ j - rstart ]
+            if temp >  tempHeight:
+                tempHeight = temp
+                tempRpos = j
+            overlap += temp
+        #coeff = scs.pearsonr( fp, rp[i:i+len(fp)] )
 
-        tempScore = coeff #overlap #/ ( abs (sum( rp[ tempStart - rstart : tempEnd - rstart + 1] ) - sum( fp[ tempStart - (fstart+i) : tempEnd - (fstart+i) +1] )) + 10 )
+        tempScore = overlap #coeff #overlap #/ ( abs (sum( rp[ tempStart - rstart : tempEnd - rstart + 1] ) - sum( fp[ tempStart - (fstart+i) : tempEnd - (fstart+i) +1] )) + 10 )
         if tempScore > maxScore:
             maxScore = tempScore
             shift = i
             maxheight = max( fp )
-            maxRpos = fp.argmax() + i + fstart
+            maxRpos = tempRpos
+            #maxRpos = fp.argmax() + i + fstart
         i += 1
 
     return maxScore, shift, maxRpos
@@ -93,13 +104,14 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
     Assuming that the peaks on one strand is mutually exclusive.
     They do not overlap with each other.
     In this case, the ordering of the starts of the peaks and the
-    ends of the peaks are the same. And that when the starts are 
+    ends of the peaks are the same. And that when the starts are
     sorted, the ends are also sorted.
     '''
     offset = 5
     expandCol = 1
     out1 = open(prefix + "_singletons.bed",'w')
     out2 = open(prefix + "_pairs.gff", "w")
+    out3 = open(prefix + "_pairs.narrowPeak", "w")
     for chrom in fpeaks:
         if chrom not in rpeaks:
             continue
@@ -109,9 +121,9 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
         pairF = []  #Store the pairing information, if unpaired, it will be negative.
         pairR = []
         fw = fwig[chrom]
-        expandedFw = gs.expandWig( fw, offset, expandCol )
+        expandedFw = gs.expandWig( fw, offset, expandCol, False )
         rw = rwig[chrom]
-        expandedRw = gs.expandWig( rw, offset, expandCol )
+        expandedRw = gs.expandWig( rw, offset, expandCol, False )
         rstarts = []
         rends = []
         fprefer = []
@@ -134,10 +146,10 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
             currFw = expandedFw[ max( 0, start - fw[0,0] ) + offset : max( 0, end - fw[0,0] ) + offset + 1]
             start = max( start, fw[0,0] )
             end = max( end, fw[0,0] )
-            flength = end - start 
+            flength = end - start
             si = bisect.bisect_left( rends, es )
             ei = bisect.bisect_right( rstarts, ee )
-            ftagCounts,_,_,_ = gs.getTagCount( fwig, chrom, start, end )
+            ftagCounts,_,_ = gs.getTagCount( fwig, chrom, start, end )
             #print ei - si
             maxScore = 0
             bestDist = 0
@@ -148,7 +160,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 rstart = max(rw[0,0], currrp[1])
                 rend = min(rw[-1,0], currrp[2]+flength)
                 currRw = expandedRw[ max( 0, start - rw[0, 0] ) + offset : max( 0, rend - rw[0,0] ) + offset + 1 ]
-                rtagCoungs,_,_,_ = gs.getTagCount( rwig, chrom, currrp[1], currrp[2] )
+                rtagCoungs,_,_ = gs.getTagCount( rwig, chrom, currrp[1], currrp[2] )
 
                 tempScore, tempDist, tempRpos = getScore( currFw, currRw, start, rstart )
 
@@ -173,6 +185,7 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
                 pass
         singletons = []
         pairs = []
+        pairs_narrow = []
         while len(unpairedF) > 0:
             for u in unpairedF:
                 if len( fprefer[u] ) > 0:
@@ -189,15 +202,22 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
 
         for i,f in enumerate(pairF):
             fp[i][1] -= 1
+            currFp = fp[i]
             if f[0] == -1:
                 singletons.append( fp[i] )
             else:
                 rp[f[0]][1] -= 1
+                currRp = rp[f[0]]
                 #pairs.append( fp[i] )
                 #pairs.append( rp[f[0]] )
                 pairStart = (2*f[3] - f[2])/2
                 pairEnd = pairStart + 1
                 pairs.append( [fp[i][0],'.','.',pairStart-10, pairEnd+10,f[1],'.','.','cw_distance='+str(f[2]) ] )
+                half_len = int(f[2]/2)
+                narrowStart=  max(currFp[1] + half_len, currRp[1] - half_len) - half_len
+                narrowEnd = min(currFp[2] + half_len, currRp[2] - half_len) + half_len
+                pairs_narrow.append([currFp[0], narrowStart, narrowEnd, currFp[3]+'_'+currRp[3], (currFp[4]+currRp[4])/2, '.', (currFp[6]+currRp[6])/2, (currFp[7]+currRp[7])/2, (currFp[8]+currRp[8])/2, f[3] - half_len - narrowStart, f[2]])
+
 
         for i,f in enumerate(pairR):
             rp[i][1] -= 1
@@ -215,8 +235,12 @@ def pair( fpeaks, rpeaks, fwig, rwig, ulimit, dlimit, prefix):
         for p in pairs:
             out2.write('\t'.join([str(i) for i in p]))
             out2.write('\n')
+        for p in pairs_narrow:
+            out3.write('\t'.join([str(i) for i in p]))
+            out3.write('\n')
     out1.close()
     out2.close()
+    out3.close()
 
 
 
@@ -232,8 +256,8 @@ def main():
     args = parser.parse_args()
 
     fpeaks, rpeaks = loadPeaks( args.peak )
-    fwig = gs.loadWig( args.forwardWig )
-    rwig = gs.loadWig( args.reverseWig )
+    fwig = gs.loadWig( args.forwardWig, smooth=False )
+    rwig = gs.loadWig( args.reverseWig, smooth=False )
 
     pair( fpeaks, rpeaks, fwig, rwig, args.upstream, args.downstream, args.output)
 

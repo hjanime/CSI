@@ -48,6 +48,9 @@ figure = plt.figure()
 plt.plot(faves)
 plt.plot(raves)
 tokens[-1] = 'averaged.png'
+ticks_half = np.array([0,width/2, width])
+labels_half = np.array([-(width/2), 0, width/2])
+plt.xticks(ticks_half, labels_half)
 plt.savefig('.'.join(tokens), dpi=600)
 
 plt.clf()
@@ -67,6 +70,7 @@ figure = plt.figure()
 plt.plot(fmedians)
 plt.plot(rmedians)
 tokens[-1] = 'median.png'
+plt.xticks(ticks_half, labels_half)
 plt.savefig('.'.join(tokens), dpi=600)
 
 plt.clf()
@@ -85,8 +89,8 @@ figure = plt.figure()
 plt.imshow(data, aspect='auto', cmap=blue_red)
 #plt.imshow(data[:,:width],aspect='auto', cmap=blue_red)
 plt.colorbar()
-ticks = np.array( [0, width/2-15, width/2, width/2+15, width, width*1.5 - 15, width + width/2 , width*1.5 + 15,  2*width] )
-labels = [-int(width/2), -15, 0, 15, 'sep',-15, 0,15, int(width/2)]
+ticks = np.array( [0,  width/2,  width,  width + width/2 ,  2*width] )
+labels = [-int(width/2),  0,  'sep', 0, int(width/2)]
 plt.xticks(ticks, labels)
 
 plt.xlabel('Distance from motif (bp)')

@@ -91,27 +91,42 @@ def printResult( result, motifs, intervals, outPrefix = None, fastaCount = None,
         outS = open( outPrefix + '.tsv','w')
 
     def writeToFile( out, useSum = False ):
+        '''
+        Return:
+            a list:
+                [ intervals, [name, counts], [name, counts]...]
+        '''
         out.write('motifs')
+        ret = []
+        ret_inters = []
         if translate:
             out.write('\tFactor')
         for i in range(len(intervals) - 1 ):
             if i == len(intervals) - 2:
-                out.write('\t[%d,%d]'%(intervals[i], intervals[i+1],))
+                tstr = '[%d,%d]'%(intervals[i], intervals[i+1],)
             else:
-                out.write('\t[%d,%d)'%(intervals[i], intervals[i+1],))
+                tstr = '[%d,%d)'%(intervals[i], intervals[i+1],)
+            out.write('\t%s'%tstr)
+            ret_inters.append(tstr)
         out.write('\n')
+        ret.append(ret_inters)
 
         for i in range( len( motifs ) ):
             out.write(motifs[i])
+            currList = [motifs[i]]
             if translate and motifs[i] in translate:
                 out.write('\t' + translate[motifs[i]])
             for j in range( len( intervals )-1 ):
                 temp = []
+                tempList = []
                 tempTotal = 0
                 for k in result[i][j]:
                     temp.append('%d:%d'%(k,result[i][j][k],))
                     tempTotal += result[i][j][k]
+                    tempList.append((k, result[i][j][k]))
                 temp.sort(key=lambda k:(int(k.split(':')[0])))
+                tempList.sort(key=lambda k:(k[0],))
+                currList.append(tempList)
                 if len( temp ) == 0:
                     temp = ['0',]
                 if not useSum:
@@ -119,17 +134,21 @@ def printResult( result, motifs, intervals, outPrefix = None, fastaCount = None,
                 else:
                     out.write('\t%d'%tempTotal)
             out.write('\n')
+            ret.append(currList)
         if fastaCount:
             out.write('Number_of_seqs')
             for v in fastaCount:
                 out.write('\t%d'%v)
             out.write('\n')
+        return ret
 
-    writeToFile( out )
+    counts = writeToFile( out )
+    print counts
     if outPrefix:
         writeToFile( outS, True)
         out.close()
         outS.close()
+    return counts
 
 def getFastaCount( fasta, intervals ):
     f = open( fasta )
@@ -192,7 +211,6 @@ def printLocHist(leftPoses, rightPoses,singlePoses, motifs, translate, savefig =
         subp2.set_xlabel("Position")
         subp2.set_ylabel("Frequency")
         saveOrPrint(fig, "LocHist_"+ m, '', savefig)
-        pl.close()
 
 def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefig=None):
     import numpy as np
@@ -203,7 +221,7 @@ def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefi
     for i,m in enumerate(motifs):
         print m
         motif2value[ m ] = i
-
+    print motifs
     for r in records:
         if r[-1] not in motif2value:
             continue
@@ -216,6 +234,8 @@ def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefi
 
     matrix_all = []
     matrix_exist = []
+    ticks = [0, seq_length/2, seq_length]
+    labels = [-(seq_length/2),0,seq_length/2]
 
     count_diff = 0
     count_all = 0
@@ -238,7 +258,7 @@ def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefi
         temp = np.zeros(seq_length) - 1
         for i,p in enumerate(data[seq][1:]):
             for t in p:
-                temp[t[0]-1:t[1]] = i
+                temp[(t[0]+t[1])/2] = i
             if len(p) == 0:
                 exist = False
         temp = list(temp)
@@ -261,10 +281,10 @@ def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefi
             count_diff += 1
 
 
-
     print count_diff, ' ', count_all, ' ', len(matrix_all),' ', len(matrix_exist)
     print count_all_by_dist
     print count_exist_by_dist
+    pl.close("all")
     fig_all = pl.figure(1)
     fig_exist = pl.figure(2)
     sub_count = 1
@@ -286,39 +306,126 @@ def generateHeatMatrix( motifs, details, records, seq_length, intervals , savefi
             t += ']'
         subTitles.append(t)
 
-    matrix_all = np.array(matrix_all)
-    matrix_exist = np.array(matrix_exist)
-    matrix_all[matrix_all<0] = None
-    matrix_exist[matrix_exist<0] = None
-    for i in range(len(intervals) - 1):
-        fas = fig_all.add_subplot((NUMPLOTS+1)/2, 2, sub_count)
-        fes = fig_exist.add_subplot((NUMPLOTS+1)/2, 2, sub_count)
-        fas.imshow(matrix_all[matrix_by_dist[i]], aspect='auto')
-        fas.set_title(subTitles[ sub_count - 1])
-        fes.imshow(matrix_exist[matrix_exist_by_dist[i]], aspect='auto')
-        fes.set_title(subTitles[ sub_count - 1])
-        sub_count += 1
-
     #matrix_all.sort(key=lambda k:(np.average(k),)) # np.average(k[0:60]), np.average(k[60:140]),np.average(k[140:])))
     #matrix_exist.sort(key=lambda k:(np.average(k),)) # np.average(k[0:60]), np.average(k[60:140]),np.average(k[140:])))
+    matrix_all = np.array(matrix_all)
+    matrix_exist = np.array(matrix_exist)
+    #matrix_all[matrix_all<0] = None
+    #matrix_exist[matrix_exist<0] = None
+    matrix_all += 1
+    matrix_exist += 1
+    ncolumns = 2
 
-    fas = fig_all.add_subplot((NUMPLOTS+1)/2, 2, sub_count)
-    fes = fig_exist.add_subplot((NUMPLOTS+1)/2, 2, sub_count)
-    fas.imshow(matrix_all[matrix_all_idx], aspect='auto')
-    fas.set_title("All dist")
-    fig_all.suptitle("Heatmap all for CTCF (blue) and MAX (red)")
+
+    def setTickAndLabel(ax, ticks_a, labels_a):
+        ax.set_xticks(ticks_a)
+        ax.set_xticklabels(labels_a)
+
+    if len(intervals) > 2:
+        for i in range(len(intervals) - 1):
+            fas = fig_all.add_subplot((NUMPLOTS+1)/2, 2, sub_count)
+            fes = fig_exist.add_subplot((NUMPLOTS+1)/2, 2, sub_count)
+            #fas.imshow(matrix_all[matrix_by_dist[i]], aspect='auto')
+            fas.plot(matrix_all[matrix_by_dist[i]].sum(axis=0)/matrix_all[matrix_by_dist[i]].shape[0])
+            fas.set_title(subTitles[ sub_count - 1] + ' %d'%len(matrix_by_dist[i]))
+            setTickAndLabel(fas, ticks, labels)
+            #fes.imshow(matrix_exist[matrix_exist_by_dist[i]], aspect='auto')
+            fes.plot(matrix_exist[matrix_exist_by_dist[i]].sum(axis=0)/matrix_exist[matrix_exist_by_dist[i]].shape[0])
+            fes.set_title(subTitles[ sub_count - 1] + ' %d'%len(matrix_exist_by_dist[i]))
+            setTickAndLabel(fes, ticks, labels)
+            sub_count += 1
+
+    else:
+        ncolumns = 1
+        NUMPLOTS=1
+
+    fas = fig_all.add_subplot((NUMPLOTS+1)/2, ncolumns, sub_count)
+    fes = fig_exist.add_subplot((NUMPLOTS+1)/2, ncolumns, sub_count)
+    matrix_all_sorted = matrix_all[matrix_all_idx]
+    matrix_exist_sorted = matrix_exist[matrix_exist_idx]
+    fas.plot(matrix_all_sorted.sum(axis=0)/matrix_all_sorted.shape[0])
+    fas.set_title("All dist %d" % len(matrix_all_idx))
+    setTickAndLabel(fas, ticks, labels)
+    fig_all.suptitle("Heatmap all for %s"%motifs[0])
     #pl.colorbar()
-    saveOrPrint(fig_all, "Heatmap_all", '', savefig)
     #fig_all.close()
-    pl.close()
+    #pl.close()
 
-    fes.imshow(matrix_exist[matrix_exist_idx], aspect='auto')
-    fig_exist.suptitle("Heatmap exist for CTCF (blue) and MAX (red)")
-    #pl.colorbar()
-    fes.set_title("All dist")
+    fes.plot(matrix_exist_sorted.sum(axis=0)/matrix_exist_sorted.shape[0])
+    fig_exist.suptitle("Heatmap exist for %s"%motifs[0])
+    fes.set_title("All dist %d" % len(matrix_exist_idx))
+    setTickAndLabel(fes, ticks, labels)
+
+    fig_all.subplots_adjust(right=0.8)
+    fig_exist.subplots_adjust(right=0.8)
+
+    #cbar_ax = fig_all.add_axes([0.85,0.15,0.05,0.7])
+    #cbar_ax_e = fig_exist.add_axes([0.85,0.15,0.05,0.7])
+
+    #fig_all.colorbar(ima, cax=cbar_ax)
+    #fig_all.show()
+    #pl.show()
+    fig_all.tight_layout()
+    fig_exist.tight_layout()
+    saveOrPrint(fig_all, "Heatmap_all", '', savefig)
+    #fig_exist.colorbar(ime, cax=cbar_ax_e)
+    #fig_exist.show()
     saveOrPrint(fig_exist, "Heatmap_exist", '', savefig)
     #fig_exist.close()
-    pl.close()
+    #pl.close()
+
+
+def plotPieChart(counts, fastaCount, savefig):
+    import numpy as np
+    import pylab as pl
+    from plotDistCat import saveOrPrint, getIntervalIdx
+    from collections import defaultdict
+    inter_names = counts[0]
+    NUMPLOTS = len(inter_names) + 1
+    colors = ['b','g','r','c','m','y','k','w']
+    for c in counts[1:]:
+        print c
+        totals = defaultdict(int)
+        motif = c[0]
+        nrows = (NUMPLOTS+1)/2
+        pl.close("all")
+
+        fig = pl.figure(figsize=(10,14))
+        for i in range(len(inter_names)):
+            ax = fig.add_subplot(nrows, 2, i+1)
+            curr = np.array(c[i+1])
+            for k in c[i+1]:
+                totals[k[0]] += k[1]
+            fracs = list(curr[:,1])
+            labels = list(curr[:,0])
+            if fastaCount is not None:
+                fracs.insert(0,fastaCount[i] - curr[:,1].sum())
+                labels.insert(0,0)
+            print fracs , ' ', labels
+            ax.pie(fracs, autopct='%1.1f%%',colors=colors,labels=labels)
+            ax.set_title('%d,%s'%(sum(fracs),inter_names[i]))
+
+        labels = totals.keys()
+        labels.sort()
+        fracs = []
+        for f in labels:
+            fracs.append(totals[f])
+
+        if fastaCount is not None:
+            fracs.insert(0,sum(fastaCount) - sum(fracs))
+            labels.insert(0,0)
+        ax = fig.add_subplot(nrows, 2, i+2)
+        ax.pie(fracs, labels=labels, autopct='%1.1f%%' ,colors=colors)
+        ax.set_title('%d, All'%sum(fracs))
+
+        fig.tight_layout()
+
+        saveOrPrint(fig, motif, "pie", savefig)
+
+
+
+
+
 
 
 
@@ -380,13 +487,15 @@ def main( args ):
 
     fastaCount = getFastaCount( args.fasta, args.intervals )
     translate = loadTranslate( args.translate )
-    printResult( result, motifs, args.intervals, args.outPrefix, fastaCount, translate)
+    counts = printResult( result, motifs, args.intervals, args.outPrefix, fastaCount, translate)
 
 
     printDistBox( distBtMotifs, args.intervals, motifs, translate, args.plotsdir)
     printLocHist( leftPoses, rightPoses,singlePoses, motifs, translate, args.plotsdir )
 
-    generateHeatMatrix( ['MA0139.1','MA0058.1'], details_poses, records, 201, args.intervals, args.plotsdir)
+    generateHeatMatrix( motifs, details_poses, records, 201, args.intervals, args.plotsdir)
+
+    plotPieChart(counts, fastaCount, args.plotsdir)
 
 if __name__=='__main__':
     args = parseArgs()

@@ -161,7 +161,8 @@ class Peak:
                 self.cc[i] = self.cc[i] / (2*data1.shape[0] - i - 1)
         self.shift = np.argmax(ccn[data1.shape[0]-1:data1.shape[0]*3/2])
         '''
-        w = np.blackman(11)
+        w = np.blackman(41)
+        #w = np.ones(40)
         data1 = self.data[0]
         data2 = self.data[1]
         mean1 = data1[:self.size].mean()
@@ -176,7 +177,7 @@ class Peak:
         maxScore = 0
         cc = np.correlate(data2, data1[:self.size], 'valid')
         #self.shift= np.argmax(cc[data1.shape[0]-1:])
-        self.shift= np.argmax(cc)
+        self.shift= 5 + np.argmax(cc[5:])
         individual = data1[:self.size]*data2[self.shift:self.shift+self.size]
         self.summit = self.shift / 2 + np.argmax(individual)
 
@@ -196,22 +197,34 @@ class Peak:
         data2 = np.convolve(w, self.data[1],mode='same')
         data1[data1<=0]=0.001
         data2[data2<=0]=0.001
-        data1 = data1*np.sqrt(data1)
-        data2 = data2*np.sqrt(data2)
-        maxI = 0
-        maxScore = 0
-        cc = np.correlate(data2, data1, 'full')
-        self.old_shift = np.argmax(cc[data1.shape[0]-1:])
+        #data1 = data1*np.sqrt(data1)
+        #data2 = data2*np.sqrt(data2)
+        #maxI = 0
+        #maxScore = 0
+        #cc = np.correlate(data2, data1, 'full')
+        #self.old_shift = np.argmax(cc[data1.shape[0]-1:])
+        cc = np.correlate(data2, data1[:self.size], 'valid')
+        self.old_shift = np.argmax(cc)
 
 
     def __str__(self):
         return '\t'.join([str(i) for i in [self.chrom, self.start, self.end, self.name, self.score, self.strand, self.signalValue, self.pValue, self.qValue, self.summit, self.shift, self.stitchedId]])
+
+    def summitStr(self):
+        return '\t'.join([str(i) for i in [self.chrom, self.start + self.summit, self.start + self.summit + 1, self.name, self.score, self.strand, self.signalValue, self.pValue, self.qValue, 0, self.shift, self.stitchedId]])
 
     def simpleStr(self):
         a = '%s_%d_%d_%f'%(self.chrom, self.start, self.end, self.signalValue)
         if self.shift != None:
             a = '%s_%d'%(a, self.shift)
         return a
+
+
+    def bedStr(self, extension=100):
+        '''
+        This will produce a string centered at the peak's summit.
+        '''
+        return '\t'.join([str(i) for i in [self.chrom, self.start+self.summit-extension, self.start+self.summit+extension, self.name, self.shift, self.strand]])
 
     def plot(self,savefig=None):
         '''
@@ -384,6 +397,76 @@ class StitchedPeaks:
         a.append(','.join([p.simpleStr() for p in self.peaks]))
         return '\t'.join([str(i) for i in a])
 
+    def asBedStr(self):
+        a = []
+        a.append(self.getChrom())
+        a.append(self.getStart())
+        a.append(self.getEnd())
+        a.append(self.peaks[0].name + '_stitched')
+        a.append(self.index)
+        a.append('+')
+        a.append(self.getStart())
+        a.append(self.getEnd())
+        a.append('255,0,0')
+        a.append(len(self.peaks))
+        sizes = []
+        starts = []
+        for p in self.peaks:
+            sizes.append(p.end - p.start)
+            starts.append(p.start - self.getStart())
+        a.append(','.join([str(i) for i in sizes]))
+        a.append(','.join([str(i) for i in sizes]))
+        return '\t'.join([str(i) for i in a])
+
+def getPercentile(data, percentile):
+    percentiles = []
+    for d in data:
+        print len(d)
+        percentiles.append(np.percentile(d,percentile))
+    print percentiles
+    return max(percentiles)
+
+
+def classifyStitched(stitched, options):
+    '''
+    Divide the stitched peaks into three categories:
+        1. single peak,
+        2. double or more peaks but < 10 kb,
+        3. and double or more peaks with > 10 kb span.
+    And check on the relationship with signal and peak-pair distances. Generate the plots for the signal and peak-pair distances for each category.
+    '''
+    signals = [[],[],[]]
+    dists = [[],[],[]]
+    for chrom in stitched:
+        for st in stitched[chrom]:
+            if len(st.peaks) == 1:
+                signals[0].append(st.peaks[0].signalValue)
+                dists[0].append(st.peaks[0].shift)
+            elif len(st.peaks) > 1 and st.getEnd() - st.getStart() < 10000:
+                for p in st.peaks:
+                    signals[1].append(p.signalValue)
+                    dists[1].append(p.shift)
+            elif len(st.peaks) > 1 and st.getEnd() - st.getStart() >= 10000:
+                for p in st.peaks:
+                    signals[2].append(p.signalValue)
+                    dists[2].append(p.shift)
+
+    import pylab as pl
+    fig = pl.figure()
+    sub1 = fig.add_subplot(211)
+    xlabels = ["Single %d"%len(signals[0]), "Multi (<10kb) %d"%len(signals[1]), "Multi (>=10kb) %d"%len(signals[2])]
+    sub1.set_title("MACS signal value")
+    sub1.boxplot(signals)
+    sub1.set_ylim([0, int(getPercentile(signals, 75)*2)])
+    pl.xticks([1,2,3], xlabels, fontsize=10)
+    sub2 = fig.add_subplot(212)
+    sub2.set_title("Shift")
+    sub2.boxplot(dists)
+    #sub2.set_ylim([0, 200])
+    sub2.set_ylim([0, int(getPercentile(dists, 75)*2)])
+    pl.xticks([1,2,3], xlabels, fontsize=10)
+    fig.savefig(getOutput(options)+"_category.png",dpi=600)
+    fig.clf()
 
 def getStitchHeader():
     a = ['#Chrom',
@@ -508,7 +591,7 @@ def addWigToPeak(fw, rw, peaks, isControl=False):
             pi += 1
     return fwig, rwig, chroms
 
-def filterPeaks(peaks, num_poses, rpm, ratio, chroms, rejected = None):
+def filterPeaks(peaks, num_poses, rpm, ratio, qvalue, chroms, rejected = None):
     '''
     Parameters:
         peaks: all the peaks read in.
@@ -519,6 +602,7 @@ def filterPeaks(peaks, num_poses, rpm, ratio, chroms, rejected = None):
         filtered_peaks: in the same format as the input peaks.
     '''
     filtered = {}
+    count = 0
     for chrom in peaks:
         if chrom not in chroms:
             continue
@@ -527,9 +611,11 @@ def filterPeaks(peaks, num_poses, rpm, ratio, chroms, rejected = None):
         for p in peaks[chrom]:
             sum1 = p.data[0].sum()
             sum2 = p.data[1][:p.size].sum()
-            if (p.data[0] > 0).sum() >= num_poses and (p.data[1][:p.size] > 0).sum() >= num_poses and sum1+sum2 >= rpm and not isReject(rejected, p.chrom, p.start + 1, p.end):
+            if p.qValue > qvalue and (p.data[0] > 0).sum() >= num_poses and (p.data[1][:p.size] > 0).sum() >= num_poses and sum1+sum2 >= rpm and not isReject(rejected, p.chrom, p.start + 1, p.end):
                 if max(sum1, sum2) * 1.0 / min(sum1, sum2) < ratio:
                     filtered[chrom].append(p)
+                    count += 1
+    print "n%d_m%.1f_%.1fr: %d" % (num_poses, rpm, ratio, count)
 
     return filtered
 
@@ -703,6 +789,27 @@ def writeData(stitched, peaks, prefix, total, ctotal):
             outPeaks.write('\n')
     outPeaks.close()
 
+    outSummits = open(prefix+"_summits.narrowPeak",'w') #this is changed from bed to narrowPeak to reflect its content.
+    for chrom in peaks:
+        for p in peaks[chrom]:
+            outSummits.write(p.summitStr())
+            outSummits.write('\n')
+    outSummits.close()
+
+    outStitchedBed = open(prefix+"_stitched.bed",'w')
+    for chrom in stitched:
+        for s in stitched[chrom]:
+            outStitchedBed.write(s.asBedStr())
+            outStitchedBed.write('\n')
+    outStitchedBed.close()
+
+    outPeaksBed = open(prefix+'_filtered.bed','w')
+    for chrom in peaks:
+        for p in peaks[chrom]:
+            outPeaksBed.write(p.bedStr())
+            outPeaksBed.write('\n')
+    outPeaksBed.close()
+
 def getTotal(fwig):
     if fwig == None:
         return 0
@@ -712,13 +819,14 @@ def getTotal(fwig):
     return total
 
 def getOutput( options):
-    output = options.output + '_n%d_m%.0f_r%.1f'%(options.nposes, options.rpm, options.ratio)
+    output = options.output + '_n%d_m%.0f_r%.1f_q%d'%(options.nposes, options.rpm, options.ratio, options.qvalue)
     return output
 
 def plotDistHist(filtered, options):
     shifts = []
     oldShifts = []
     for chrom in filtered:
+        count = 0
         for p in filtered[chrom]:
             p.getCC()
             p.getOldShift()
@@ -726,11 +834,12 @@ def plotDistHist(filtered, options):
             oldShifts.append(p.old_shift)
 
             if options.savefig >= 0:
-                if options.rpm == options.savefig:
+                if options.rpm == options.savefig and count < 20 and np.random.rand() >= 0.5:
                     dirname = "%s/%d"%(getOutput(options),p.shift/10)
                     if not os.path.exists(dirname):
                         os.system("mkdir -p " + dirname)
                     p.plot(dirname)
+                    count += 1
 
     import pylab as pl
     pl.figure()
@@ -757,14 +866,14 @@ def run(options):
 
     total = getTotal(fwig) + getTotal(rwig)
     ctotal = getTotal(cfwig) + getTotal(crwig)
-    for r in [2,5,10,20]:
+    for r in [0,2,5,10,20]:
         options.rpm = r
         rpm = total*options.rpm/1000000
         print total, ' ', rpm, ' ',ctotal
         rejected = {}
         if options.rejectRegion is not None:
             rejected = loadRejectRegion(options.rejectRegion)
-        filtered = filterPeaks(peaks, options.nposes, rpm, options.ratio, chroms, rejected)
+        filtered = filterPeaks(peaks, options.nposes, rpm, options.ratio, options.qvalue, chroms, rejected)
         stitched = stitchPeaks(filtered, 12500)
         for chrom in stitched:
             for s in stitched[chrom]:
@@ -774,6 +883,7 @@ def run(options):
                 s.getTotalCtrlInConst()
         plotDistHist(filtered, options)
         writeData(stitched, filtered, getOutput(options), total, ctotal)
+        classifyStitched(stitched, options)
     import pylab as pl
     pl.clf()
     pl.close()
@@ -795,6 +905,7 @@ def getArgs():
     parser.add_argument('-o', '--output', default="New", help="The prefix for output. If not specified, it will use 'New'.")
     parser.add_argument('-b', '--rejectRegion', help = "The blacklisted regions within which a peak should be rejected.")
     parser.add_argument('--savefig', type=int, default=-1, help="Whether to save the shift plots.")
+    parser.add_argument('-q', '--qvalue', type=int, default=0, help="The minimum -log10(q) value required for a peak. Default: 0")
 
     args = parser.parse_args()
     return args
